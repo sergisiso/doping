@@ -1,0 +1,25 @@
+Jake
+========
+
+Project Description
+-------------------------------
+
+
+Usage
+--------------------------------
+Simple compiler instruction:
+./jake [jake_options] -- compiler_command
+
+Ex:
+./jake -- icc test/flops/flops_serial.c -o test/flops/flops
+
+
+Makefile build system:
+CC="./jake [jake_options] -- icc" make
+Ex:
+
+Contributors
+-------------------------------
+Sergi Siso <sergi.siso@stfc.ac.uk>
+Jeyan Thiyagalingam <T.Jeyarajan@liverpool.ac.uk>
+
