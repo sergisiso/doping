@@ -1,0 +1,54 @@
+The TaskGraph Library
+=====================
+
+License 
+------- 
+This code and documentation is copyright by the authors and Imperial
+College. The software is provided for evaluation purposes.
+
+If you wish to use the software for any practical purpose, permission
+must be gained from Paul Kelly.
+
+No charge will be made to academic and research users of this version
+of the software.
+
+
+Authors and Contributors
+------------------------
+Alastair Houghton
+Michael Mellor
+Paul Kelly 
+Peter Fordham
+Olav Beckmann
+Konstantinos Spyropoulos
+Peter Collingbourne
+Francis Russell
+Willam Deacon
+
+Installation
+------------
+see INSTALL
+
+Getting Started
+---------------
+
+- Take a look at the examples directory. 
+
+- In particular the simple subdirectory. Try to run that program: 
+
+  ./addc 1 
+
+  This should print "b = 2"! 
+
+- There are additional examples included in this package, showing various
+  algorithms or techniques that the TaskGraph library is best suited
+  at. They typically contain a C++ implementation of the algorithm or
+  technique, as well as a TaskGraph implementation, for easy comparison of
+  speeds. More details on each example can be found in the examples/README
+  file.
+
+
+Problems
+--------
+
+- Email Francis Russell (fpr02@doc.ic.ac.uk)
