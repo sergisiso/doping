@@ -1,0 +1,7 @@
+
+
+module purge
+module load python/3.4.2 clang gcc # Order is important
+
+export PYTHONPATH=$PYTHONPATH:/gpfs/stfc/local/HCP055/pxs02/sss33-pxs02/workspace/Jake/deps/asciitree-0.3.1
+

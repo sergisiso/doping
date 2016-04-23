@@ -2,39 +2,146 @@
 import sys
 import clang.cindex
 
-import asciitree
+
+class Rewriter:
+
+    filename = None
+    content = []
+    cursor = 0
+
+    def __init__(self, filename):
+        self.filename = filename
+        with open(filename,'r') as f:
+            self.content = f.read().splitlines()
+        self.cursor = 0
+
+    def copy(self, filetocopy):
+        with open(filetocopy,'r') as f:
+            self.content = f.read().splitlines()
+        self.cursor = 0
+
+    def goto_line(self, number):
+        self.cursor = number - 1 # 0-indexing
+
+    def insert(self, string):
+        self.content.insert(self.cursor, string)
+        self.cursor = self.cursor + 1
+    
+    def replace(self, string):
+        self.content[self.cursor] = string
+        self.cursor = self.cursor + 1
+ 
+    def comment(self):
+        self.content[self.cursor] = "//" + self.content[self.cursor]
+        self.cursor = self.cursor + 1
+
+
+    def print_range(self, start, end):
+        for line in range(start,end):
+            print( str(line+1)+ ": " + self.content[line])
+
+    def printall(self):
+        self.print_range(0,len(self.content))
+
+    def save(self):
+        with open(self.filename,'w') as f:
+            f.write("\n".join(self.content))
+
+class AST:
+    
+    treeroot = None
+    filename = None
+    originalcode = None
+
+    def __init__(self, input):
+        self.create_AST(input)
+        self.filename = input
+        self.originalcode = "aaa"
+
+    def create_AST(self, input):
+        index = clang.cindex.Index.create()
+        self.treeroot = index.parse(input)
+
+    def _is_from_file(self, node):
+        return node.location.file.name == self.filename
+    
+    def str_position(self, node):
+        return "["+ node.location.file.name + ", line:" + str(node.location.line) \
+                + ", col:" + str(node.location.column) + "]"
+
+    def node_to_str(self, node, recursion_level = 0):
+            childrenstr = []
+            if recursion_level < 5:
+                for child in filter(self._is_from_file,node.get_children()) :
+                    childrenstr.append(self.node_to_str(child,recursion_level+1))
+            text = node.spelling or node.displayname
+            kind = str(node.kind)[str(node.kind).index('.')+1:]
+            return  ("    " * recursion_level) + kind + " " + text + "\n" + "\n".join(childrenstr)
+
+    def find_loops(self):
+        looplist = self._find(self.treeroot.cursor, clang.cindex.CursorKind.FOR_STMT)
+        for node in filter(self._is_from_file,looplist):
+            print("FOR Loop Found at " + self.str_position(node) )
+        return looplist
+
+    def generate_taskgraph(self,file):
+        node = filter(self._is_from_file,self.find_loops())[0]
+        print( "-> Generating taskgraph for loop at " + self.str_position(node))
+        print(self.node_to_str(node))
+        print(node.extent.end.line)
+        
+        file.goto_line(node.extent.start.line)
+        file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
+        file.insert("//  --------- Old version: ----------")
+        # Comment old code
+        for i in range((node.extent.end.line - node.extent.start.line)+1):
+            file.comment()
+
+        file.insert("//  --------- TG version: ----------")
+
+        file.printall()
+
+
+
+    def _find(self, node, type):
+        listofmatches = []
+
+        try:
+            if (node.kind == type): listofmatches.append(node)
+        except ValueError:
+            pass
+         
+        # Recurse for children of this node
+        for c in node.get_children():
+            listofmatches.extend(self._find(c,type))
+
+        return listofmatches
+
+
+    def __str__(self):
+        return "AST:\n" + self.node_to_str(self.treeroot.cursor)
+
+
 
 def generate_new_code(input, output):
     finput = open(input, 'r')
     foutput = open(output, 'w')
     foutput.write(finput.read())
 
-def find_typerefs(node, typename):
-    """ Find all references to the type named 'typename'
-    """
-    #print('kind: %s, spelling: %s [line=%s, col=%s]' % (node.kind, node.spelling, node.location.line, node.location.column))
-    if (node.kind == clang.cindex.CursorKind.FOR_STMT):
-        print('For statement found at [line=%s, col=%s]' % (node.location.line, node.location.column))
-
-    # Recurse for children of this node
-    for c in node.get_children():
-        find_typerefs(c, typename)
-
-def node_children(node):
-    #return (c for c in node.get_children() if c.location.file.name == sys.argv[1])
-    return (c for c in node.get_children() if true)
-
-def print_node(node):
-    text = node.spelling or node.displayname
-    kind = str(node.kind)[str(node.kind).index('.')+1:]
-    return '{} {}'.format(kind, text)
-
 def generate_new_code_test(input, output):
-    finput = open(input, 'r')
-    index = clang.cindex.Index.create()
-    translation_unit = index.parse(input)
-    print(asciitree.draw_tree(translation_unit.cursor, node_children, print_node))
-    #find_typerefs(tu.cursor, "Person")
+
+    # make a copy of the file to the output location
+    file = Rewriter(output)
+    file.copy(input)
+
+    #parse code and generate ast tree
+    ast = AST(input)
+
+    #rewrite file with taskgraph code 
+    ast.generate_taskgraph(file)
+
+    #save file
+    file.save()
 
 if __name__ == "__main__":
     generate_new_code_test(sys.argv[1], sys.argv[2])
