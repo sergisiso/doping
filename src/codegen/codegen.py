@@ -11,7 +11,7 @@ class Rewriter:
 
     def __init__(self, filename):
         self.filename = filename
-        with open(filename,'r') as f:
+        with open(filename,'w+') as f:
             self.content = f.read().splitlines()
         self.cursor = 0
 
@@ -98,8 +98,55 @@ class AST:
             file.comment()
 
         file.insert("//  --------- TG version: ----------")
+        #file.insert("std::cout << \"Creating TaskGraph ...\" << std::endl;")
+        tg_id = "tg0"
+        tg_type = "tgtype"
+        tg_input = ["MatrixType","MatrixType","MatrixType"]
+        file.insert(" typedef SCALARTYPE MatrixType[MATRIXSIZE][MATRIXSIZE];")
+        file.insert("typedef tg::TaskGraph<void,"+",".join(tg_input)+"> "+tg_type+";")
+        file.insert(tg_type+" "+tg_id+";")
+        # macro taskgraph(type, name, parameters)
+        file.insert("taskgraph("+tg_type+", "+tg_id+", tuple3(a,b,c) ) {")
+        file.insert("tVar ( int, x );")
+        file.insert("tVar ( int, y );")
+        file.insert("tVar ( int, z );")
+
+        self.libclang_to_tg(node,file)
+
+        file.insert("}")
+        #file.insert("std::cout << \"Compiling...\" << std::endl;")
+        file.insert(tg_id+".compile( tg::GCC);" )
+        #file.insert("std::cout << \"Executing...\" << std::endl;")
+        file.insert(tg_id+".execute(a,b,c);")
+
+        file.goto_line(1)
+        file.insert("#include <TaskGraph>")
+        file.goto_line(5)
+        file.insert("using namespace tg;")
 
         file.printall()
+
+    def libclang_to_tg(self, node, file):
+
+        kind = str(node.kind)[str(node.kind).index('.')+1:]
+        #print([x.spelling for x in list(node.get_tokens())])
+        if node.kind == clang.cindex.CursorKind.FOR_STMT:
+            #FOR_STMT structure: for(child0 ; child1 ; child2){ child3 }
+            child = [ c for c in node.get_children()]
+            s0 = [x.spelling for x in child[0].get_tokens()]
+            s1 = [x.spelling for x in child[1].get_tokens()]
+            s2 = [x.spelling for x in child[2].get_tokens()]
+            # s0 give one token more than necessary, is that a libclang bug?
+            # file.insert("for( "+" ".join(s0[:-1])+" ".join(s1)+" ".join(s2) +"{")
+            file.insert("tFor( "+str(list(child[0].get_children())[0].spelling)+", 0 , MATRIXSIZE - 1 ){")
+            self.libclang_to_tg(child[3],file)
+            file.insert("}")
+        elif node.kind == clang.cindex.CursorKind.COMPOUND_STMT:
+            # What exaclty is COMPOUND_STMT? I only see one STMT
+            for c in node.get_children():
+                self.libclang_to_tg(c,file)
+        else:
+            file.insert(" ".join([x.spelling for x in node.get_tokens()]))
 
 
 
