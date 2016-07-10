@@ -1,10 +1,11 @@
 #!/bin/env python3
 
 import os
+import sys
 import argparse
 from subprocess import call
-
-from codegen import codegen
+from codegen.Rewriter import Rewriter
+from codegen.CodeTransformation import LoopProfiling, GenerateTaskGraph
 
 ext = ['.cpp', '.c', '.cc']
 
@@ -34,8 +35,23 @@ def main():
     print("Compiling code using: ", ' '.join(new_compiler_command))
     call(list(new_compiler_command), shell=False)
 
+def generate_new_code_test(input, output):
+
+    # make a copy of the file to the output location
+    file = Rewriter(output)
+    file.copy(input)
+    file.save()
+
+    # Create and apply transformations
+    trans1 = LoopProfiling(output)
+    trans1.apply()
+
+    #trans2 = GenerateTaskGraph(output)
+    #trans2.apply()
+
 
 if __name__ == "__main__":
-    main()
+    generate_new_code_test(sys.argv[1], sys.argv[2])
+    #main()
 
 
