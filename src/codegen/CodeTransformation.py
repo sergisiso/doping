@@ -12,15 +12,24 @@ class CodeTransformation:
         pass
     
 
+    def static_analysis(self, line=None):
+	self.ast =  ASTNode(filename=self.filename)
+	ret = self._static_analysis(line)
+
     def apply(self):
         self.file = Rewriter(self.filename)
         self.ast = ASTNode(filename=self.filename)
-        self._apply()
+        ret = self._apply()
         self.file.save()
         self.file.printall()
+	return ret
 
     def _apply(self):
-        raise NotImplementedError()
+        raise NotImplementedError("This is an abstract class, instantiate one subclass")
+
+    def _static_analysis(self):
+        raise NotImplementedError("This is an abstract class, instantiate one subclass")
+
 
 
 
@@ -103,6 +112,21 @@ class GenerateTaskGraph (CodeTransformation):
 
     def __init__(self, filename):
         self.filename = filename
+
+    def static_var_analysis(self, node):
+	""" Return the local variables (used only inside the loop) and
+	the global variables readed and updated (used also outside the loop):
+	  - Local variables are candidates for being declared with TaskGraph tVar()
+	  - Global variables are candidates for beign input/output of TaskGraph call
+		- Defined types just being read can be delay evaluated
+	"""
+	local_vars = []
+	tg_input_vars = []
+	tg_input_types = []
+
+
+	return local_vars, tg_input_vars, tg_input_types
+
 
     def _apply(self):
         # Shortcuts

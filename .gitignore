@@ -1,3 +1,4 @@
 **/*.swp
 **/*.exe
+**/*.pyc
 **/__pycache__
