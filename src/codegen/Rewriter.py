@@ -21,6 +21,12 @@ class Rewriter:
             self.content = f.read().splitlines()
         self.cursor = 0
 
+    def get_line(self):
+	return self.cursor + 1
+
+    def get_content(self):
+	return self.content[self.cursor]
+
     def goto_line(self, number):
         self.cursor = number - 1 # 0-indexing
 

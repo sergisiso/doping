@@ -38,16 +38,18 @@ def main():
 def generate_new_code_test(input, output):
 
     # make a copy of the file to the output location
+    with open(output,'w') as f:
+            f.write(" ")
     file = Rewriter(output)
     file.copy(input)
     file.save()
 
     # Create and apply transformations
-    trans1 = LoopProfiling(output)
-    trans1.apply()
+    #trans1 = LoopProfiling(output)
+    #trans1.apply()
 
-    #trans2 = GenerateTaskGraph(output)
-    #trans2.apply()
+    trans2 = GenerateTaskGraph(output)
+    trans2.apply()
 
 
 if __name__ == "__main__":

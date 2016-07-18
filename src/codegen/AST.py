@@ -12,7 +12,7 @@ BINARY_LOGICAL_OPERATORS = ("&&","||")
 
 class ASTNode:
     
-    root = None # is this equivalent to cursor from parent?
+    #root = None # is this equivalent to cursor from parent?
     filename = None
 
     def __init__(self, filename, node = None): 
@@ -49,6 +49,10 @@ class ASTNode:
     def get_tokens(self): # FIXME: Move to parent
         return [x.spelling.decode("utf-8") for x in self.root.get_tokens()]
 
+    def contains(self, node, string):
+	tokens = [x.spelling.decode("utf-8") for x in node.get_tokens()]
+	return string in tokens
+
     def _is_from_file(self, node):
         return node.location.file.name.decode("utf-8") == self.filename
     
@@ -60,20 +64,76 @@ class ASTNode:
 
     def node_to_str(self, node, recursion_level = 0):
             childrenstr = []
-            if recursion_level < 5:
+            if recursion_level < 10:
                 for child in filter(self._is_from_file,node.get_children()) :
                     childrenstr.append(self.node_to_str(child,recursion_level+1))
             # Displayname has more information in some situations
             text = node.spelling or node.displayname
             kind = str(node.kind)[str(node.kind).index('.')+1:]
-            tokens = [x.spelling for x in node.get_tokens()]
-            return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") + "\n" + "\n".join(childrenstr)
+            tokens = " ".join([x.spelling for x in node.get_tokens()])
+            return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") + " " + tokens + "\n" + "\n".join(childrenstr)
 
     def find_loops(self, fromfile = False):
         looplist = self._find(self.root, clang.cindex.CursorKind.FOR_STMT)
         if fromfile == True: looplist = filter(self._is_from_file, looplist)
         looplist = [ASTNode(self.filename,x) for x in looplist]
         return looplist
+
+ 
+    def find_declarations(self, fromfile = False):
+        looplist = self._find(self.root, clang.cindex.CursorKind.DECL_STMT)
+        if fromfile == True: looplist = filter(self._is_from_file, looplist)
+        looplist = [ASTNode(self.filename,x) for x in looplist]
+        return looplist
+
+    def find_writes(self, fromfile = False):
+	assigments = []
+        assigments.extend(self._find(self.root, clang.cindex.CursorKind.COMPOUND_ASSIGNMENT_OPERATOR))
+        binaryops = self._find(self.root, clang.cindex.CursorKind.BINARY_OPERATOR)
+	assigments.extend(filter(lambda x: self.contains(x,"="), list(binaryops)))
+        if fromfile == True: assigments = filter(self._is_from_file, assigments)	
+
+	writes = []
+
+	for a in assigments:
+		c1 = list(a.get_children())[0]
+		if c1.kind == clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR:
+		    writes.append(list(c1.get_tokens())[0].spelling)
+
+        return writes
+
+    def find_reads(self):
+
+	names = {}
+	def _get_names(node, parent):
+            	text = node.spelling or node.displayname
+		if text not in names and not text == "":
+			names[text]=parent.kind
+		#print(text+" : "+ str(node.kind) + "," +str(parent.kind))
+		child = node.get_children()
+		for c in child:
+			_get_names(c, node)
+		return names
+	
+	reads = _get_names(self.root, self.root)
+	
+	reads = [x for x in names.keys() if not names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
+	reads_array = [x for x in names.keys() if names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
+	return reads, reads_array
+	
+
+
+    def find_type(self,var):
+	#FIXME: Find the type
+	#print("Find type")
+	#print(self.root.get_definition())
+	#print(self.root.lexical_parent)
+	#all_dec = self._find(self.root, clang.cindex.CursorKind.PARM_DECL)
+	
+	#print(all_dec)
+	exit(0)
+	return "MatrixType"
+
 
     def _find(self, node, type = None):
         listofmatches = []
@@ -95,6 +155,31 @@ class ASTNode:
     def __str__(self):
         return "AST:\n" + self.node_to_str(self.root)
 
+class DECLNode (ASTNode):
+	datatype = None
+	varname = None
+	array = None
+
+	def __init__(self, node):
+	    #if not node.isDecl():
+	    #    raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
+            self.root = node.root
+       	    tokens = [x.spelling for x in self.root.get_tokens()]
+	    #print(" ".join(tokens)) 
+
+            if tokens.count("=") == 1:
+		# Initialization declaration
+	        index = tokens.index("=") - 1
+	    elif tokens.count("=") == 0:
+		# Declaration without initialization
+	        index = tokens.index(";") - 1
+	    else:
+		raise ValueError("Unexpected string")
+	
+	    self.varname = tokens[index]
+	    self.datatype = " ".join(tokens[0:index])
+	    
+
 
 class FORNode (ASTNode) :
     initialization = None
@@ -105,7 +190,7 @@ class FORNode (ASTNode) :
     def __init__(self, node):
         if not node.isFor():
              raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
-        self.root = node.root
+        self.root = node
         child = [ c for c in self.root.get_children()]
         self.initialization = child[0]
         self.condition = child[1]
