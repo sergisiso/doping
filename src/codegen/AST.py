@@ -10,9 +10,19 @@ BINARY_RELATIONAL_OPERATORS_MT = (">",">=")
 BINARY_RELATIONAL_OPERATORS_LT = ("<","<=")
 BINARY_LOGICAL_OPERATORS = ("&&","||")
 
+
+def instantiate_node(node, filename):
+    if(node.kind == clang.cindex.CursorKind.FOR_STMT):
+    	return FORNode(filename, node)
+    elif(node.kind == clang.cindex.CursorKind.DECL_STMT):
+        return DECLNode(filename, node)
+    else:
+        return ASTNode(filename, node)
+
+
 class ASTNode:
     
-    #root = None # is this equivalent to cursor from parent?
+    root = None # is this equivalent to cursor from parent?
     filename = None
 
     def __init__(self, filename, node = None): 
@@ -76,15 +86,15 @@ class ASTNode:
     def find_loops(self, fromfile = False):
         looplist = self._find(self.root, clang.cindex.CursorKind.FOR_STMT)
         if fromfile == True: looplist = filter(self._is_from_file, looplist)
-        looplist = [ASTNode(self.filename,x) for x in looplist]
+        looplist = [FORNode(self.filename,x) for x in looplist]
         return looplist
 
  
     def find_declarations(self, fromfile = False):
-        looplist = self._find(self.root, clang.cindex.CursorKind.DECL_STMT)
-        if fromfile == True: looplist = filter(self._is_from_file, looplist)
-        looplist = [ASTNode(self.filename,x) for x in looplist]
-        return looplist
+        decllist = self._find(self.root, clang.cindex.CursorKind.DECL_STMT)
+        if fromfile == True: decllist = filter(self._is_from_file, decllist)
+        decllist = [DECLNode(self.filename,x) for x in decllist]
+        return decllist
 
     def find_writes(self, fromfile = False):
 	assigments = []
@@ -125,7 +135,7 @@ class ASTNode:
 
     def find_type(self,var):
 	#FIXME: Find the type
-	#print("Find type")
+	print("Find type")
 	#print(self.root.get_definition())
 	#print(self.root.lexical_parent)
 	#all_dec = self._find(self.root, clang.cindex.CursorKind.PARM_DECL)
@@ -150,7 +160,7 @@ class ASTNode:
         return listofmatches
 
     def get_children(self):
-        return [ASTNode(self.filename, x) for x in self.root.get_children()]
+        return [instantiate_node(x, self.filename) for x in self.root.get_children()]
 
     def __str__(self):
         return "AST:\n" + self.node_to_str(self.root)
@@ -160,10 +170,11 @@ class DECLNode (ASTNode):
 	varname = None
 	array = None
 
-	def __init__(self, node):
+	def __init__(self, filename, node):
 	    #if not node.isDecl():
 	    #    raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
-            self.root = node.root
+            self.root = node
+	    self.filename = filename
        	    tokens = [x.spelling for x in self.root.get_tokens()]
 	    #print(" ".join(tokens)) 
 
@@ -187,10 +198,11 @@ class FORNode (ASTNode) :
     increment = None
     body = None
 
-    def __init__(self, node):
-        if not node.isFor():
+    def __init__(self, filename, node):
+        if not node.kind == clang.cindex.CursorKind.FOR_STMT:
              raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
         self.root = node
+	self.filename = filename
         child = [ c for c in self.root.get_children()]
         self.initialization = child[0]
         self.condition = child[1]
@@ -199,10 +211,10 @@ class FORNode (ASTNode) :
 
     def get_init_tokens(self):  
         # Can not call self.get_tokens because there is a bug in libclang and we need [:-1]
-        return [x.spelling.decode("utf-8") for x in self.initialization.get_tokens()][:-1]
+        return [x.spelling for x in self.initialization.get_tokens()][:-1]
 
     def get_cond_tokens(self):
-        return [x.spelling.decode("utf-8") for x in self.condition.get_tokens()]
+        return [x.spelling for x in self.condition.get_tokens()]
 
     def get_body(self):
         return ASTNode(self.filename, self.body)

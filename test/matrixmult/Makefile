@@ -2,8 +2,10 @@
 CC = g++
 CFLAGS = -O3 -march=native
 
-TGINCLUDE = -I$(TGPATH)/include -I/gpfs/stfc/local/apps/intel/boost/1.59.0/include
-TGLIB = -L$(TGPATH)/lib -I/gpfs/stfc/local/apps/intel/boost/1.59.0/lib
+TGPATH = /home/sergi/jake/deps/taskgraph-20140613/install
+
+TGINCLUDE = -I$(TGPATH)/include
+TGLIB = -L$(TGPATH)/lib
 
 all: cversion profversion tgversion tgauto
 

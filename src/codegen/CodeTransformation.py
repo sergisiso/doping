@@ -1,5 +1,5 @@
 from codegen.Rewriter import Rewriter
-from codegen.AST import ASTNode, FORNode, DECLNode
+from codegen.AST import ASTNode
 
 
 class CodeTransformation:
@@ -57,7 +57,7 @@ class LoopProfiling (CodeTransformation):
         # Generate new version of the loop
         file.insert("//  --------- New version: ----------")
         if node.isFor():
-            for_loop = FORNode(node)
+            for_loop = node
 
             file.insert("time_t JAKEend, JAKElast;")
             file.insert("JAKEend = time(NULL) + 2;")
@@ -129,7 +129,7 @@ class GenerateTaskGraph (CodeTransformation):
 
 	decl = node.find_declarations()
 	for d in decl:
-	    dnode = DECLNode(d)
+	    dnode = d
 	    local_vars[dnode.varname] = dnode.datatype
 	
 	writes = node.find_writes()
@@ -227,7 +227,7 @@ class GenerateTaskGraph (CodeTransformation):
     def libclang_to_tg(self, node, file):
 
         if node.isFor():
-            for_loop = FORNode(node)
+            for_loop = node
             file.insert("tFor( " + for_loop.cond_variable() + ", " \
                     + for_loop.cond_starting_value() + "," + for_loop.cond_end_value() + "){")
             file.increase_indexation()
