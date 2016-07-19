@@ -5,3 +5,4 @@
 sourceme
 deps/taskgraph/build/**
 deps/taskgraph/install/**
+**/**/__pycache__/
