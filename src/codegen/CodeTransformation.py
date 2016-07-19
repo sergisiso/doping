@@ -135,7 +135,7 @@ class GenerateTaskGraph (CodeTransformation):
 	writes = node.find_writes()
 	for w in writes:
 	    if w not in local_vars: # FIXME: first element
-	        tg_input_vars[w] = node.find_type(w)
+	        tg_input_vars[w] = self.ast.find_type(w)
 	
 	reads, reads_array = node.find_reads()
 
@@ -200,7 +200,7 @@ class GenerateTaskGraph (CodeTransformation):
 	
 	# Define local variables
 	for v in local_var.keys():
-	    file.insert("tVar( "+v+", "+local_var[v]+");")
+	    file.insert("tVar( "+local_var[v]+", "+v+");")
 
         self.libclang_to_tg(node,file)
 

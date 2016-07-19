@@ -15,7 +15,7 @@
 #include <TaskGraph>
 #include <iostream>
 
-#define MATRIXSIZE 1088
+#define MATRIXSIZE 512
 #define TILESIZE 144
 #define SCALARTYPE double
 
@@ -36,7 +36,7 @@ void matrixMult ( SCALARTYPE a[][MATRIXSIZE], SCALARTYPE b[][MATRIXSIZE], SCALAR
 typedef SCALARTYPE MatrixType[MATRIXSIZE][MATRIXSIZE];
 
 // this defines the type of the taskgraphs we're going to build
-typedef TaskGraph<void, **SCALARTYPE, MatrixType, MatrixType> mm_TaskGraph;
+typedef TaskGraph<void, MatrixType, MatrixType, MatrixType> mm_TaskGraph;
 
 // This function builds a taskgraph to do exactly the same thing as the
 // matrixmult function above
