@@ -1,5 +1,0 @@
-
-
-module purge
-module load python/3.4.2 clang gcc # Order is important
-
