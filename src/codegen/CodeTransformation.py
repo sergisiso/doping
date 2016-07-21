@@ -159,7 +159,11 @@ class GenerateTaskGraph (CodeTransformation):
         ast = self.ast
 
         # Get first loop
-        node = list(ast.find_loops(True))[0]
+	candidates = list(ast.find_loops(True))
+	if len(candidates) < 1:
+		print("No candidates found for transformation")
+		return
+	node = candidates[0]
         print( "-> Generating taskgraph for loop at " + node.str_position())
 
 	local_var, tg_input_vars = self.static_var_analysis(node)
