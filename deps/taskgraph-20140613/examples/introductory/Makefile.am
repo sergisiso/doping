@@ -1,1 +1,0 @@
-SUBDIRS = imgfilt matrixmult simple

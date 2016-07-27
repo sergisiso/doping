@@ -2,8 +2,10 @@
 CC = g++
 CFLAGS = -O3 -march=native
 
-JAKE=/home/sergi/jake/jake
-TGPATH = /home/sergi/jake/deps/taskgraph-20140613/install
+
+JAKE="python ../../jake"
+
+#TGPATH = /home/sergi/jake/deps/taskgraph-20140613/install
 
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib

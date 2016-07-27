@@ -3,6 +3,5 @@
 **/*.pyc
 **/__pycache__
 sourceme
-deps/taskgraph/build/**
-deps/taskgraph/install/**
+deps/taskgraph-*
 **/**/__pycache__/
