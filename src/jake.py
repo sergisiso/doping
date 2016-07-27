@@ -3,6 +3,7 @@
 import os
 import sys
 import argparse
+from shutil import copyfile
 from subprocess import call
 from codegen.Rewriter import Rewriter
 from codegen.CodeTransformation import LoopProfiling, GenerateTaskGraph
@@ -18,7 +19,7 @@ def main():
     
 
     # Source to Source transformation of C/C++ files
-    print("Replacing C/C++ files:")
+    print("Optimizing C/C++ files:")
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
     new_compiler_command = args.compiler_command
 
@@ -26,13 +27,17 @@ def main():
         index = args.compiler_command.index(file)
         filename, file_extension = os.path.splitext(file)
         newfile = filename + ".jake" + file_extension
-        codegen.generate_new_code(file,newfile)
-        print(" * Code generated for", file, " file")
+        copyfile(file, newfile)
+        print("  - Code generated for " + file + " ->" + newfile)
+        #codegen.generate_new_code(file,newfile)
+        #transformation = LoopProfiling(newfile)
+        transformation = GenerateTaskGraph(newfile)
+        transformation.apply()
         new_compiler_command[index] = newfile
         
 
     # Compile the generated code
-    print("Compiling code using: ", ' '.join(new_compiler_command))
+    print("Compiling code with: " + ' '.join(new_compiler_command))
     call(list(new_compiler_command), shell=False)
 
 def generate_new_code_test(input, output):
@@ -53,7 +58,7 @@ def generate_new_code_test(input, output):
 
 
 if __name__ == "__main__":
-    generate_new_code_test(sys.argv[1], sys.argv[2])
-    #main()
+    #generate_new_code_test(sys.argv[1], sys.argv[2])
+    main()
 
 

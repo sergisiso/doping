@@ -17,8 +17,7 @@ runcversion:
 	./helloworld.exe
 
 jake: helloworld.c
-	$(JAKE) helloworld.c hw_auto.c
-	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph hw_auto.c -o hw.tgauto.exe
+	$(JAKE) -- $(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph helloworld.c -o hw.tgauto.exe
 
 runjake:
 	./hw.tgauto.exe

@@ -19,8 +19,7 @@ runcversion:
 	./mm.cversion.exe
 
 jake: mm.cc
-	$(JAKE) mm.cc mm_auto.cc
-	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph mm_auto.cc -o mm.tgauto.exe
+	$(JAKE) -- $(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph mm.cc -o mm.tgauto.exe
 
 runjake:
 	./mm.tgauto.exe

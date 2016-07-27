@@ -1,6 +1,9 @@
 **/*.swp
 **/*.exe
 **/*.pyc
+**/*.jake.c
+**/*.jake.cc
+**/*.jake.cpp
 **/__pycache__
 sourceme
 deps/taskgraph-*
