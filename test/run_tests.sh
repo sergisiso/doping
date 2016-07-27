@@ -2,7 +2,7 @@
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 JAKEBIN="python $DIR/../jake"
-
+LOGFILE="$PWD/test.log"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -12,33 +12,34 @@ echo ""
 echo " ####### Testing Jake ################"
 echo ""
 
+
+echo "TEST executed on $(date)" > $LOGFILE
+
+execute () {
+    echo "$1" >> $LOGFILE
+    echo -n "$1"
+    SECONDS=0
+    output=$( $2 &>> $LOGFILE)
+    if [ $? == 0 ]; then
+        echo -e "[${GREEN}SUCCESS${NC} ($SECONDS sec) ]";
+    else
+        echo -e "[${RED}FAILED (see $LOGFILE) ${NC}]";
+    fi
+}
+
 #for testdir in helloworld matrixmult flops imgfilt skewedgaussseidel
 for testdir in helloworld matrixmult
 do
     echo "  [[[     Running $testdir TEST     ]]]"
-echo ""
+    echo ""
     cd $DIR/$testdir
-    echo -n "  * Cleaning possible early results/binaries "
-    output=$( make clean )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Compiling native code: "
-    output=$( make cversion )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Running native code: "
-    output=$( make runcversion )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Compiling jake code: "
-    output=$( make jake )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Running Jake code: "
-    output=$( make runjake )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Compiling manually optimized code: "
-    output=$( make mopt )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
-    echo -n "  * Running manually optimized code: "
-    output=$( make runmopt )
-    if [ $? == 0 ]; then echo -e "[${GREEN}SUCCESS${NC}]"; else echo -e "[${RED}FAILED${NC}]"; fi
+    execute "  * Cleaning possible early results/binaries " "make clean"
+    execute "  * Compiling native code: " "make cversion"
+    execute "  * Running native code: " "make runcversion"
+    execute "  * Compiling jake code: " "make jake"
+    execute "  * Running Jake code: " "make runjake" 
+    execute "  * Compiling manually optimized code: " "make mopt"
+    execute "  * Running manually optimized code: " "make runmopt"
     echo ""
 done
 

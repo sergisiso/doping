@@ -3,7 +3,7 @@ CC = g++
 CFLAGS = -O3 -march=native
 
 
-JAKE="python ../../jake"
+JAKE=${JAKEROOT}/jake
 
 #TGPATH = /home/sergi/jake/deps/taskgraph-20140613/install
 
