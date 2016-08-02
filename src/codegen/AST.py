@@ -13,7 +13,7 @@ BINARY_LOGICAL_OPERATORS = ("&&","||")
 
 def instantiate_node(node, filename):
     if(node.kind == clang.cindex.CursorKind.FOR_STMT):
-    	return FORNode(filename, node)
+        return FORNode(filename, node)
     elif(node.kind == clang.cindex.CursorKind.DECL_STMT):
         return DECLNode(filename, node)
     else:
@@ -60,8 +60,8 @@ class ASTNode:
         return [x.spelling.decode("utf-8") for x in self.node.get_tokens()]
 
     def contains(self, other, string):
-	tokens = [x.spelling.decode("utf-8") for x in other.get_tokens()]
-	return string in tokens
+        tokens = [x.spelling.decode("utf-8") for x in other.get_tokens()]
+        return string in tokens
 
     def _is_from_file(self, other):
         return other.location.file.name.decode("utf-8") == self.filename
@@ -73,17 +73,17 @@ class ASTNode:
         return "["+ name + ", line:" + line + ", col:" + col+ "]"
 
     def node_to_str(self, other, ptokens=True, recursion_level = 0):
-            childrenstr = []
-            if recursion_level < 10:
-                for child in filter(self._is_from_file,other.get_children()) :
-                    childrenstr.append(self.node_to_str(child,ptokens,recursion_level+1))
-            # Displayname has more information in some situations
-            text = other.spelling or other.displayname
-            kind = str(other.kind)[str(other.kind).index('.')+1:]
-            tokens = ""
-	    if ptokens:
-                tokens = " ".join([x.spelling for x in other.get_tokens()])
-            return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") + " " + tokens + "\n" + "\n".join(childrenstr)
+        childrenstr = []
+        if recursion_level < 5:
+            for child in filter(self._is_from_file,other.get_children()) :
+                childrenstr.append(self.node_to_str(child,ptokens,recursion_level+1))
+        # Displayname has more information in some situations
+        text = other.spelling or other.displayname
+        kind = str(other.kind)[str(other.kind).index('.')+1:]
+        tokens = ""
+        if ptokens:
+            tokens = " ".join([x.spelling for x in other.get_tokens()])
+        return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") + " " + tokens + "\n" + "\n".join(childrenstr)
 
     def find_loops(self, fromfile = False):
         looplist = self._find(self.node, clang.cindex.CursorKind.FOR_STMT)
@@ -99,71 +99,100 @@ class ASTNode:
         return decllist
 
     def find_writes(self, fromfile = False):
-	assigments = []
+        assigments = []
         assigments.extend(self._find(self.node, clang.cindex.CursorKind.COMPOUND_ASSIGNMENT_OPERATOR))
-        binaryops = self._find(self.node, clang.cindex.CursorKind.BINARY_OPERATOR)
-	assigments.extend(filter(lambda x: self.contains(x,"="), list(binaryops)))
-        if fromfile == True: assigments = filter(self._is_from_file, assigments)	
+        #print "compound assignments: " + str(len(assigments))
 
-	writes = []
+        # Binary operations which contain a '='
+        found = self._find(self.node, clang.cindex.CursorKind.BINARY_OPERATOR)
+        assigments.extend(filter(lambda x: self.contains(x,"="), list(found)))
+        #print "binary ops: " + str(len(found))
 
-	for a in assigments:
-		c1 = list(a.get_children())[0]
-		if c1.kind == clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR:
-		    writes.append(list(c1.get_tokens())[0].spelling)
+        # Declarations which contain a '='
+        found = self._find(self.node, clang.cindex.CursorKind.DECL_STMT)
+        assigments.extend(filter(lambda x: self.contains(x,"="), list(found)))
+        #print "declarations: " + str(len(found))
+
+        if fromfile == True: assigments = filter(self._is_from_file, assigments)    
+
+        writes = []
+
+        for a in assigments:
+            if self.contains(a,"="):
+                tokens = [x.spelling for x in a.get_tokens()]
+                ind = tokens.index('=')
+                #if it is not an array
+                if tokens[ind-1] != ']':
+                    #FIXME: should consider composed references (e.g. structs)
+                    writes.append(tokens[ind-1])
+            c1 = list(a.get_children())[0]
+            if c1.kind == clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR:
+                writes.append(list(c1.get_tokens())[0].spelling)
 
         return writes
 
     def find_reads(self):
 
-	names = {}
-	def _get_names(other, parent):
-            	text = other.spelling or other.displayname
-		if text not in names and not text == "":
-			names[text]=parent.kind
-		#print(text+" : "+ str(other.kind) + "," +str(parent.kind))
-		child = other.get_children()
-		for c in child:
-			_get_names(c, other)
-		return names
-	
-	reads = _get_names(self.node, self.node)
-	
-	reads = [x for x in names.keys() if not names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
-	reads_array = [x for x in names.keys() if names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
-	return reads, reads_array
-	
+        names = {}
+        def _get_names(other, parent):
+            text = other.spelling or other.displayname
+            if text not in names and not text == "":
+                names[text]=parent.kind
+            #print(text+" : "+ str(other.kind) + "," +str(parent.kind))
+            child = other.get_children()
+            for c in child:
+                _get_names(c, other)
+            return names
+    
+        reads = _get_names(self.node, self.node)
+    
+        reads = [x for x in names.keys() if not names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
+        reads_array = [x for x in names.keys() if names[x]==clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR]
+        return reads, reads_array
+    
 
 
     def find_type(self,var):
-	#FIXME: Find the type
-	#print("Find type of " + str(var))
-	all_dec = []
-	all_dec.extend(self._find(self.node, clang.cindex.CursorKind.PARM_DECL))
-	all_dec = filter(self._is_from_file,all_dec)
-	all_dec = filter( lambda x: x.displayname==var ,all_dec)
+        #FIXME: Find the type
+        #print("Find type of " + str(var))
+        all_dec = []
+        all_dec.extend(self._find(self.node, clang.cindex.CursorKind.PARM_DECL))
+        all_dec.extend(self._find(self.node, clang.cindex.CursorKind.VAR_DECL))
+        all_dec = filter(self._is_from_file,all_dec)
+        all_dec = filter( lambda x: x.displayname==var ,all_dec)
 
-	if len(all_dec) < 1:
-	    raise ValueError("Var " + var + " does not exist in the file.")
-	# FIXEM: Solve issue below
-	if len(all_dec) > 1:
+        if len(all_dec) < 1:
+            raise ValueError("Var " + var + " does not exist in the file.")
+        # FIXEM: Solve issue below
+        if len(all_dec) > 1:
             raise NotImplementedError("Right now it does not support same var names in the same file")
-	type_tokens = []
-	tokens = [x.spelling for x in all_dec[0].get_tokens()]
-	#print tokens
-	ind = tokens.index(var)
-	type_tokens.append(tokens[ind-1])
-	ind = ind + 1
-	while tokens[ind] == '[':
-		while tokens[ind] != ']':
-		    type_tokens.append(tokens[ind])
-		    ind = ind + 1
-		type_tokens.append(']')
-		ind = ind + 1
+    
+        type_tokens = []
+        tokens = [x.spelling for x in all_dec[0].get_tokens()]
+        #print tokens
+        ind = tokens.index(var)
 
-	#print(" ".join(type_tokens))
-	#exit(0)
-	return "".join(type_tokens)
+        # before the variable name there is the tyep (FIXME: NOT ALWAYS)
+        ind = ind - 1
+        while ind >= 0 and tokens[ind] not in [",",";"]:
+            type_tokens.insert(0,tokens[ind])
+            ind = ind - 1
+        
+        # after the variable name there may be array information
+        ind = tokens.index(var)
+        ind = ind + 1
+        while tokens[ind] == '[':
+            while tokens[ind] != ']':
+                type_tokens.append(tokens[ind])
+                ind = ind + 1
+            type_tokens.append(']')
+            ind = ind + 1
+
+        #print(" ".join(type_tokens))
+        #exit(0)
+        string = " ".join(type_tokens)
+        string = string.replace(' [ ','[')
+        return string
 
 
     def _find(self, other, type = None):
@@ -187,30 +216,30 @@ class ASTNode:
         return "AST:\n" + self.node_to_str(self.node)
 
 class DECLNode (ASTNode):
-	datatype = None
-	varname = None
-	array = None
+    datatype = None
+    varname = None
+    array = None
 
-	def __init__(self, filename, other):
-	    #if not other.isDecl():
-	    #    raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
-            self.node = other
-	    self.filename = filename
-       	    tokens = [x.spelling for x in self.node.get_tokens()]
-	    #print(" ".join(tokens)) 
+    def __init__(self, filename, other):
+        #if not other.isDecl():
+        #    raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
+        self.node = other
+        self.filename = filename
+        tokens = [x.spelling for x in self.node.get_tokens()]
+        #print(" ".join(tokens)) 
 
-            if tokens.count("=") == 1:
-		# Initialization declaration
-	        index = tokens.index("=") - 1
-	    elif tokens.count("=") == 0:
-		# Declaration without initialization
-	        index = tokens.index(";") - 1
-	    else:
-		raise ValueError("Unexpected string")
-	
-	    self.varname = tokens[index]
-	    self.datatype = " ".join(tokens[0:index])
-	    
+        if tokens.count("=") == 1:
+            # Initialization declaration
+            index = tokens.index("=") - 1
+        elif tokens.count("=") == 0:
+            # Declaration without initialization
+            index = tokens.index(";") - 1
+        else:
+            raise ValueError("Unexpected string")
+    
+        self.varname = tokens[index]
+        self.datatype = " ".join(tokens[0:index])
+        
 
 
 class FORNode (ASTNode) :
@@ -223,7 +252,7 @@ class FORNode (ASTNode) :
         if not other.kind == clang.cindex.CursorKind.FOR_STMT:
              raise ValueError("when instantiating FOR_AST, node argument must be of kind FOR_STMT")
         self.node = other
-	self.filename = filename
+        self.filename = filename
         child = [ c for c in self.node.get_children()]
         self.initialization = child[0]
         self.condition = child[1]

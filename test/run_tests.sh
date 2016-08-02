@@ -28,7 +28,7 @@ execute () {
 }
 
 #for testdir in helloworld matrixmult flops imgfilt skewedgaussseidel
-for testdir in helloworld matrixmult
+for testdir in helloworld imgfilt
 do
     echo "  [[[     Running $testdir TEST     ]]]"
     echo ""
