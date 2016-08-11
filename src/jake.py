@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 
 import os
 import sys
@@ -6,7 +6,7 @@ import argparse
 from shutil import copyfile
 from subprocess import call
 from codegen.Rewriter import Rewriter
-from codegen.CodeTransformation import LoopProfiling, GenerateTaskGraph
+from codegen.CodeTransformations import InjectJake, GenerateTaskGraph
 
 ext = ['.cpp', '.c', '.cc']
 
@@ -30,8 +30,8 @@ def main():
         copyfile(file, newfile)
         print("  - Code generated for " + file + " ->" + newfile)
         #codegen.generate_new_code(file,newfile)
-        #transformation = LoopProfiling(newfile)
-        transformation = GenerateTaskGraph(newfile)
+        transformation = InjectJake.InjectJake(newfile)
+        #transformation = GenerateTaskGraph.GenerateTaskGraph(newfile)
         transformation.apply()
         new_compiler_command[index] = newfile
         

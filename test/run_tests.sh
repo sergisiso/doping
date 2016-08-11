@@ -1,4 +1,4 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 JAKEBIN="python $DIR/../jake"
@@ -28,7 +28,7 @@ execute () {
 }
 
 #for testdir in helloworld matrixmult flops imgfilt skewedgaussseidel
-for testdir in helloworld imgfilt
+for testdir in helloworld matrixmult imgfilt
 do
     echo "  [[[     Running $testdir TEST     ]]]"
     echo ""
