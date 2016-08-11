@@ -22,6 +22,7 @@ def main():
     print("Optimizing C/C++ files:")
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
     new_compiler_command = args.compiler_command
+    new_compiler_command.append("-ldl")
 
     for file in c_files:
         index = args.compiler_command.index(file)

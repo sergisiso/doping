@@ -165,7 +165,8 @@ class ASTNode:
             raise ValueError("Var " + var + " does not exist in the file.")
         # FIXEM: Solve issue below
         if len(all_dec) > 1:
-            raise NotImplementedError("Right now it does not support same var names in the same file")
+            pass
+            #raise NotImplementedError("Right now it does not support same var names in the same file")
     
         type_tokens = []
         tokens = [x.spelling for x in all_dec[0].get_tokens()]
@@ -188,10 +189,20 @@ class ASTNode:
             type_tokens.append(']')
             ind = ind + 1
 
-        #print(" ".join(type_tokens))
-        #exit(0)
+        # Solve some issues with the string
         string = " ".join(type_tokens)
         string = string.replace(' [ ','[')
+        string = string.replace(' ]',']')
+
+        match = string.find('//')
+        if match > 0:
+            string = string[0:match]
+
+        match = string.find('/*')
+        if match > 0:
+            string = string[0:match]
+
+
         return string
 
 

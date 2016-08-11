@@ -1,11 +1,11 @@
 #include <iostream>
 #include <time.h>
 
-#define MATRIXSIZE 512
+#define MATRIXSIZE 1024
 #define TILESIZE 144
-#define SCALARTYPE double
 
 // A naive matrix multiply function for comparison purposes
+//#define SCALARTYPE double
 /*void matrixMult ( SCALARTYPE a[][MATRIXSIZE], SCALARTYPE b[][MATRIXSIZE], SCALARTYPE c[][MATRIXSIZE] ) {
 	for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 		for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
@@ -17,7 +17,7 @@
 }
 */
 
-void matrixMult ( SCALARTYPE a[MATRIXSIZE][MATRIXSIZE], SCALARTYPE b[MATRIXSIZE][MATRIXSIZE], SCALARTYPE c[MATRIXSIZE][MATRIXSIZE] ) {
+void matrixMult ( double a[MATRIXSIZE][MATRIXSIZE], double b[MATRIXSIZE][MATRIXSIZE], double c[MATRIXSIZE][MATRIXSIZE] ) {
 	for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 		for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 			for ( unsigned z = 0; z < MATRIXSIZE; ++z ) {
@@ -27,7 +27,7 @@ void matrixMult ( SCALARTYPE a[MATRIXSIZE][MATRIXSIZE], SCALARTYPE b[MATRIXSIZE]
 	}
 }
 
-void randomInitMatrix ( SCALARTYPE m[][MATRIXSIZE] ) {
+void randomInitMatrix ( double m[][MATRIXSIZE] ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 			m[x][y] = 1.0f;
@@ -35,7 +35,7 @@ void randomInitMatrix ( SCALARTYPE m[][MATRIXSIZE] ) {
 	}
 }
 
-void zeroMatrix ( SCALARTYPE m[][MATRIXSIZE] ) {
+void zeroMatrix ( double m[][MATRIXSIZE] ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 			m[x][y] = 0.0f;
@@ -43,7 +43,7 @@ void zeroMatrix ( SCALARTYPE m[][MATRIXSIZE] ) {
 	}
 }
 
-SCALARTYPE a[MATRIXSIZE][MATRIXSIZE], b[MATRIXSIZE][MATRIXSIZE], c[MATRIXSIZE][MATRIXSIZE];
+double a[MATRIXSIZE][MATRIXSIZE], b[MATRIXSIZE][MATRIXSIZE], c[MATRIXSIZE][MATRIXSIZE];
 
 int main ( int argc, char **argv ) {
 

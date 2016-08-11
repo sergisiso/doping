@@ -1,3 +1,5 @@
+import os
+from subprocess import call
 from codegen.Rewriter import Rewriter
 from codegen.AST import ASTNode
 from CodeTransformation import CodeTransformation
@@ -66,16 +68,86 @@ class InjectJake (CodeTransformation):
             file.insertpl(" 2/JAKEprogress << \"secs\" << std::endl ;")
 
         # Create new version
-            file.insert("for(;")
-            file.insertpl(" ".join(for_loop.get_cond_tokens()))
-            file.insertpl(" ".join(for_loop.get_incr_tokens()))
-            file.increase_indexation()
-            file.insert(" ".join(for_loop.get_body_tokens()))
-            file.decrease_indexation()
+            
+            fname, fext = os.path.splitext(self.filename)
+            newfname = fname+".loop"+fext
+            print "Writing "+ newfname
+
+            local_var, tg_input_vars, del_eval = self.static_var_analysis(node)
+
+            if os.path.isfile(newfname): os.remove(newfname)
+            jakefile = Rewriter(newfname)
+
+            jakefile.insert("#define MATRIXSIZE 1024")
+
+            funcdecl = "extern \"C\" void loop("
+
+            for vname, vtype in tg_input_vars.items():
+                
+                match = vtype.find('[')
+                if match > 0:
+                    basetype = vtype[:match]
+                    arrayext = vtype[match:]
+                    funcdecl = funcdecl + basetype + " " + vname + arrayext + ","
+                else:
+                    funcdecl = funcdecl + vtype + " " + vname + ","
+
+            funcdecl = funcdecl[0:-1] + "){"
+    
+            jakefile.insert(funcdecl)
+            
+
+            for vname, vtype in local_var.items():
+                jakefile.insert(vtype+" "+vname+";")
+                
+
+            jakefile.insert("for(;")
+            jakefile.insertpl(" ".join(for_loop.get_cond_tokens()))
+            jakefile.insertpl(" ".join(for_loop.get_incr_tokens()))
+            jakefile.increase_indexation()
+            jakefile.insert(" ".join(for_loop.get_body_tokens()))
+            jakefile.decrease_indexation()
+
+            jakefile.insert("}")
+
+            jakefile.save()
         
+            print "Compiling new file"
+            command = "g++ -fPIC -shared "+newfname+" -o "+fname+".so"
+            call(command.split(' '), shell=False)
+
+            def_func_ptr = "typedef void (*pf)("
+            
+            for vname, vtype in tg_input_vars.items():
+                def_func_ptr = def_func_ptr + vtype + ","
+            def_func_ptr = def_func_ptr[:-1] + ");"
+
+            file.insert(def_func_ptr)
+            file.insert("void *lib;")
+            file.insert("pf function;")
+            file.insert("const char * err;")
+            file.insert("lib=dlopen(\""+fname+".so\", RTLD_NOW);")
+            file.insert("if (!lib){")
+            file.insert("printf(\"failed to open library .so: %s \\n\", dlerror());")
+            file.insert("exit(1);}dlerror();")
+            file.insert("function = (pf) dlsym(lib, \"loop\");")
+            file.insert("err=dlerror();")
+            file.insert("if (err){")
+            file.insert("printf(\"failed to locate function: %s \\n\", err);")
+            file.insert("exit(1);}")
+            callstring = "function("
+            for vname, vtype in tg_input_vars.items():
+                callstring = callstring + vname + ","
+            callstring = callstring[:-1] + ");"
+            file.insert(callstring)
+            file.insert("dlclose(lib);") 
+
         # Add necessary includes
             file.goto_line(1)
             file.insert("#include <time.h>")
+            file.insert("#include <dlfcn.h>")
+            file.insert("#include <stdio.h>")
+            file.insert("#include <stdlib.h>")
 
         else:
             print("No loop")

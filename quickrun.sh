@@ -1,3 +1,3 @@
-#!/bin/env bash
+#!/usr/bin/env bash
 
-python src/jake.py test/matrixmult/mm.cc new.cc
+./jake -- g++ test/matrixmult/mm.cc -o qtest

@@ -1,3 +1,4 @@
+import os
 
 class Rewriter:
 
@@ -12,6 +13,12 @@ class Rewriter:
 
     def __init__(self, filename):
         self.filename = filename
+
+        # If file does not exist create an empty file
+        if not os.path.isfile(filename):
+            open(filename,'a').close()
+
+        # Read lines and set cursor to 0
         with open(filename,'r') as f:
             self.content = f.read().splitlines()
         self.cursor = 0
