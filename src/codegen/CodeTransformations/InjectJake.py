@@ -78,8 +78,6 @@ class InjectJake (CodeTransformation):
             if os.path.isfile(newfname): os.remove(newfname)
             jakefile = Rewriter(newfname)
 
-            jakefile.insert("#define MATRIXSIZE 1024")
-
             funcdecl = "extern \"C\" void loop("
 
             for vname, vtype in tg_input_vars.items():
@@ -100,6 +98,8 @@ class InjectJake (CodeTransformation):
             for vname, vtype in local_var.items():
                 jakefile.insert(vtype+" "+vname+";")
                 
+            for vname, vtype in del_eval.items():
+                jakefile.insert(vtype+" "+vname+" = JAKEPLACEHOLDER_"+vname+";")
 
             jakefile.insert("for(;")
             jakefile.insertpl(" ".join(for_loop.get_cond_tokens()))
@@ -111,30 +111,51 @@ class InjectJake (CodeTransformation):
             jakefile.insert("}")
 
             jakefile.save()
+            jakefile.printall()
         
-            print "Compiling new file"
-            command = "g++ -fPIC -shared "+newfname+" -o "+fname+".so"
-            call(command.split(' '), shell=False)
 
-            def_func_ptr = "typedef void (*pf)("
+            print os.path.abspath(newfname), os.path.abspath(fname)
             
+
+            file.insert("std::cout << \"I am here\" << std::endl;")        
+            # Replace runtime constants
+            if len(del_eval) > 0:
+                spec_string = "char * specfname = specialize_function("
+                spec_string = spec_string + "\"" +newfname+ "\"" + ", " + str(len(del_eval))
+                for vname, vtype in del_eval.items():
+                    file.insert("char JAKEstring"+vname+"[10];")
+                    file.insert("sprintf(JAKEstring"+vname+",\"%d\","+vname+");")
+                    spec_string = spec_string + ", \"" + vname + "\", JAKEstring"+vname 
+
+                file.insert(spec_string+");")
+            file.insert("std::cout << \"I am here2\" << specfname << std::endl;")        
+            file.insert("char * command;")
+            file.insert("system(\"g++ -fPIC -shared \"+specfname+\" -o \"+specfname+\".so\");")
+
+            file.insert("std::cout << \"I am here3\" << std::endl;")        
+            def_func_ptr = "typedef void (*pf)("
             for vname, vtype in tg_input_vars.items():
                 def_func_ptr = def_func_ptr + vtype + ","
             def_func_ptr = def_func_ptr[:-1] + ");"
-
             file.insert(def_func_ptr)
-            file.insert("void *lib;")
-            file.insert("pf function;")
+
+
             file.insert("const char * err;")
-            file.insert("lib=dlopen(\""+fname+".so\", RTLD_NOW);")
+            file.insert("void * lib = dlopen(\""+fname+".so\", RTLD_NOW);")
             file.insert("if (!lib){")
+            file.increase_indexation()
             file.insert("printf(\"failed to open library .so: %s \\n\", dlerror());")
-            file.insert("exit(1);}dlerror();")
-            file.insert("function = (pf) dlsym(lib, \"loop\");")
-            file.insert("err=dlerror();")
+            file.insert("exit(1);")
+            file.decrease_indexation()
+            file.insert("}dlerror();")
+            file.insert("pf function = (pf) dlsym(lib, \"loop\");")
+            file.insert("err = dlerror();")
             file.insert("if (err){")
+            file.increase_indexation()
             file.insert("printf(\"failed to locate function: %s \\n\", err);")
-            file.insert("exit(1);}")
+            file.insert("exit(1);")
+            file.decrease_indexation()
+            file.insert("}")
             callstring = "function("
             for vname, vtype in tg_input_vars.items():
                 callstring = callstring + vname + ","
@@ -148,6 +169,7 @@ class InjectJake (CodeTransformation):
             file.insert("#include <dlfcn.h>")
             file.insert("#include <stdio.h>")
             file.insert("#include <stdlib.h>")
+            file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
 
         else:
             print("No loop")

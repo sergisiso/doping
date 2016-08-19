@@ -23,6 +23,7 @@ def main():
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
     new_compiler_command = args.compiler_command
     new_compiler_command.append("-ldl")
+    new_compiler_command.append("src/runtime/JakeRuntime.o")
 
     for file in c_files:
         index = args.compiler_command.index(file)

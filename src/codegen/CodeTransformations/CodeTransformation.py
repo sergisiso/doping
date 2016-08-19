@@ -39,10 +39,11 @@ class CodeTransformation:
 	"""
 	local_vars = {}
 	tg_input_vars = {}
+	runtime_constants = {}
 
 	# FIXME: Assumed no declarations with same name for now
 	
-	print(node)
+	#print(node)
 
 	decl = node.find_declarations()
 	for d in decl:
@@ -63,11 +64,14 @@ class CodeTransformation:
 	reads = [x for x in reads if x not in local_vars.keys()]
 	reads = [x for x in reads if x not in tg_input_vars.keys()]
 
+        for r in reads:
+            runtime_constants[r] = self.ast.find_type(r)
+
 	print ("Local vars: " + str(local_vars) )
 	print ("Input/Output vars: " + str(tg_input_vars) )
-	print ("Vars for delayed evaluation: " + str(reads) )
+	print ("Vars for delayed evaluation: " + str(runtime_constants) )
 
-	return local_vars, tg_input_vars, reads
+	return local_vars, tg_input_vars, runtime_constants
 
 
 
