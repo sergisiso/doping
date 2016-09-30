@@ -10,31 +10,26 @@ class InjectJake (CodeTransformation):
         self.filename = filename
 
     def _apply(self):
-        # Shortcuts
         file = self.file
-        ast = self.ast
 
-        # Get first loop
-	candidates = list(ast.find_loops(True))
-	if len(candidates) < 1:
-		print("No candidates found for transformation")
-		return
-	node = candidates[0]
-        print( "-> Generating taskgraph for loop at " + node.str_position())
+        # Get loops in the file
+        candidates = list(self.ast.find_file_loops(True))
+        if len(candidates) < 1:
+            print("No candidates found for transformation")
+            return
+        
+        for node in candidates:
+            print( "  -> Injecting Jake code at loop at " + node.str_position())
 
+            # Comment old code
+            file.goto_line(node.get_start())
+            file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
+            file.insert("//  --------- Old version: ----------")
+            for i in range((node.get_end() - node.get_start())+1):
+                self.file.comment()
 
-        # Add header and Comment old code
-        file.goto_line(node.get_start())
-        file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
-        file.insert("//  --------- Old version: ----------")
-        for i in range((node.get_end() - node.get_start())+1):
-            self.file.comment()
-
-        # Generate new version of the loop
-        file.insert("//  --------- New version: ----------")
-        if node.isFor():
-            for_loop = node
-
+            # Generate new version of the loop
+            file.insert("//  --------- New version: ----------")
             file.insert("time_t JAKEend, JAKElast;")
             file.insert("JAKEend = time(NULL) + 2;")
             file.insert("JAKElast = time(NULL);")
@@ -42,80 +37,77 @@ class InjectJake (CodeTransformation):
             #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
             #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
             #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKElast);")
-            
+
             #Create profiled version
-            file.insert(" ".join(for_loop.get_init_tokens()))
+            file.insert(" ".join(node.get_init_string()))
             file.insert("for(;")
-            newcond = for_loop.get_cond_tokens()
+            newcond = node.get_cond_string()
             newcond.insert( 0, "(")
             newcond.insert(-1, " ) && JAKElast < JAKEend")
             file.insertpl(" ".join(newcond))
-            file.insertpl(" ".join(for_loop.get_incr_tokens()))
+            file.insertpl(" ".join(node.get_incr_string()))
             file.increase_indexation()
-            newbody = for_loop.get_body_tokens()
+            newbody = node.get_body_string()
             #newbody.insert(-1,"clock_gettime(CLOCK_MONOTONIC, &JAKElast);")
             newbody.insert(-1,"JAKElast = time(NULL);")
             file.insert(" ".join(newbody))
             file.decrease_indexation()
-        
-        # Runtime analysis
-            file.insert("float JAKEprogress = float(" + for_loop.cond_variable())
-            file.insertpl(")/(" + for_loop.cond_end_value()  +" - ")
-            file.insertpl(for_loop.cond_starting_value() + ");")
+
+            # Runtime analysis
+            file.insert("float JAKEprogress = float(" + node.cond_variable())
+            file.insertpl(")/(" + node.cond_end_value()  +" - ")
+            file.insertpl(node.cond_starting_value() + ");")
             file.insert("std::cout << \"Loop at interation \" << x << \" (\" ")
             file.insertpl("<< JAKEprogress * 100 << \"%)\" << std::endl ;")
             file.insert("std::cout << \"Estimation of Loop total time: \" <<")
             file.insertpl(" 2/JAKEprogress << \"secs\" << std::endl ;")
 
-        # Create new version
-            
+            #file.printall()
+
+            # Create new version
             fname, fext = os.path.splitext(self.filename)
             newfname = fname+".loop"+fext
             print "Writing "+ newfname
 
-            local_var, tg_input_vars, del_eval = self.static_var_analysis(node)
+            local_vars, arrays, written_scalars, runtime_constants = node.variable_analysis()
 
             if os.path.isfile(newfname): os.remove(newfname)
             jakefile = Rewriter(newfname)
 
-            funcdecl = "extern \"C\" void loop("
+            # Write function definition with arrays and written_scalars
+            fndef = "extern \"C\" void loop("
+            for v in arrays:
+                fndef = fndef + v.type.spelling + " "+ v.displayname + ", "
+            fndef = fndef[0:-2] + "){" # remove last coma and close statement
 
-            for vname, vtype in tg_input_vars.items():
-                
-                match = vtype.find('[')
-                if match > 0:
-                    basetype = vtype[:match]
-                    arrayext = vtype[match:]
-                    funcdecl = funcdecl + basetype + " " + vname + arrayext + ","
-                else:
-                    funcdecl = funcdecl + vtype + " " + vname + ","
+            print fndef
+            jakefile.insert(fndef)
 
-            funcdecl = funcdecl[0:-1] + "){"
-    
-            jakefile.insert(funcdecl)
             
+            #for vname, vtype in local_var.items():
+            #    jakefile.insert(vtype+" "+vname+";")
 
-            for vname, vtype in local_var.items():
-                jakefile.insert(vtype+" "+vname+";")
-                
-            for vname, vtype in del_eval.items():
-                jakefile.insert(vtype+" "+vname+" = JAKEPLACEHOLDER_"+vname+";")
+            # Write delayed evaluated variables
+            #for v in runtime_constants:
+            #    jakefile.insert(vtype.spelling+" "+vname+" = JAKEPLACEHOLDER_"+vname+";")
 
-            jakefile.insert("for(;")
-            jakefile.insertpl(" ".join(for_loop.get_cond_tokens()))
-            jakefile.insertpl(" ".join(for_loop.get_incr_tokens()))
-            jakefile.increase_indexation()
-            jakefile.insert(" ".join(for_loop.get_body_tokens()))
-            jakefile.decrease_indexation()
+            jakefile.insert(node.get_string())
+
+            #jakefile.insert("for(;")
+            #jakefile.insertpl(" ".join(node.get_cond_tokens()))
+            #jakefile.insertpl(" ".join(node.get_incr_tokens()))
+            #jakefile.increase_indexation()
+            #jakefile.insert(" ".join(node.get_body_tokens()))
+            #jakefile.decrease_indexation()
 
             jakefile.insert("}")
 
             jakefile.save()
             jakefile.printall()
-        
+
 
             print os.path.abspath(newfname), os.path.abspath(fname)
-            
+
 
             file.insert("std::cout << \"I am here\" << std::endl;")        
             # Replace runtime constants
@@ -170,9 +162,4 @@ class InjectJake (CodeTransformation):
             file.insert("#include <stdio.h>")
             file.insert("#include <stdlib.h>")
             file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
-
-        else:
-            print("No loop")
-
-
 
