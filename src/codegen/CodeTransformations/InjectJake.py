@@ -13,7 +13,7 @@ class InjectJake (CodeTransformation):
         file = self.file
 
         # Get loops in the file
-        candidates = list(self.ast.find_file_loops(True))
+        candidates = list(self.ast.find_file_loops(True))[:1]
         if len(candidates) < 1:
             print("No candidates found for transformation")
             return
@@ -88,10 +88,10 @@ class InjectJake (CodeTransformation):
             #    jakefile.insert(vtype+" "+vname+";")
 
             # Write delayed evaluated variables
-            #for v in runtime_constants:
-            #    jakefile.insert(vtype.spelling+" "+vname+" = JAKEPLACEHOLDER_"+vname+";")
+            for v in runtime_constants:
+                jakefile.insert("const " + v.type.spelling+" "+v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
 
-            jakefile.insert(node.get_string())
+            jakefile.insert(node.get_string()[:-1])
 
             #jakefile.insert("for(;")
             #jakefile.insertpl(" ".join(node.get_cond_tokens()))
@@ -111,29 +111,30 @@ class InjectJake (CodeTransformation):
 
             file.insert("std::cout << \"I am here\" << std::endl;")        
             # Replace runtime constants
-            if len(del_eval) > 0:
+            if len(runtime_constants) > 0:
                 spec_string = "char * specfname = specialize_function("
-                spec_string = spec_string + "\"" +newfname+ "\"" + ", " + str(len(del_eval))
-                for vname, vtype in del_eval.items():
-                    file.insert("char JAKEstring"+vname+"[10];")
-                    file.insert("sprintf(JAKEstring"+vname+",\"%d\","+vname+");")
-                    spec_string = spec_string + ", \"" + vname + "\", JAKEstring"+vname 
+                spec_string = spec_string + "\"" +newfname+ "\"" + ", " + str(len(runtime_constants))
+                for v in runtime_constants:
+                    file.insert("char JAKEstring"+v.displayname+"[10];")
+                    file.insert("sprintf(JAKEstring"+v.displayname+",\"%d\","+v.displayname+");")
+                    spec_string = spec_string + ", \"" + v.displayname + "\", JAKEstring"+v.displayname 
 
                 file.insert(spec_string+");")
-            file.insert("std::cout << \"I am here2\" << specfname << std::endl;")        
-            file.insert("char * command;")
-            file.insert("system(\"g++ -fPIC -shared \"+specfname+\" -o \"+specfname+\".so\");")
+            file.insert("std::string command = std::string(\"g++ -fPIC -shared \") + specfname + \" -o \" +specfname+ \".so\";")
+            file.insert("std::cout << \"Compiling: \" << command << std::endl;")        
+            file.insert("system(command.c_str());")
+            #file.insert("system(\"g++ -fPIC -shared \"+specfname+\" -o \"+specfname+\".so\");")
 
             file.insert("std::cout << \"I am here3\" << std::endl;")        
             def_func_ptr = "typedef void (*pf)("
-            for vname, vtype in tg_input_vars.items():
-                def_func_ptr = def_func_ptr + vtype + ","
+            for v in arrays:
+                def_func_ptr = def_func_ptr + v.type.spelling + ","
             def_func_ptr = def_func_ptr[:-1] + ");"
             file.insert(def_func_ptr)
 
 
             file.insert("const char * err;")
-            file.insert("void * lib = dlopen(\""+fname+".so\", RTLD_NOW);")
+            file.insert("void * lib = dlopen((specfname+std::string(\".so\")).c_str(), RTLD_NOW);")
             file.insert("if (!lib){")
             file.increase_indexation()
             file.insert("printf(\"failed to open library .so: %s \\n\", dlerror());")
@@ -149,8 +150,8 @@ class InjectJake (CodeTransformation):
             file.decrease_indexation()
             file.insert("}")
             callstring = "function("
-            for vname, vtype in tg_input_vars.items():
-                callstring = callstring + vname + ","
+            for v in arrays:
+                callstring = callstring + v.displayname + ","
             callstring = callstring[:-1] + ");"
             file.insert(callstring)
             file.insert("dlclose(lib);") 

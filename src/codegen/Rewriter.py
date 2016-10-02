@@ -5,6 +5,9 @@ class Rewriter:
     filename = None
     # Content stored as a list of lines
     content = []
+    # Relative position to where the lines were at the beginning
+    relative_pos = []
+    original_num_lines = 0
     # 0-indexed pointer to line
     cursor = 0
     # Indexation managers
@@ -22,20 +25,32 @@ class Rewriter:
         with open(filename,'r') as f:
             self.content = f.read().splitlines()
         self.cursor = 0
+        self.original_num_lines = len(self.content)
+        self.relative_pos = [0 for line in self.content]
 
     def copy(self, filetocopy):
         with open(filetocopy,'r') as f:
             self.content = f.read().splitlines()
         self.cursor = 0
+        self.original_num_lines = len(self.content)
+        self.relative_pos = [0 for line in self.content]
 
     def get_line(self):
-	return self.cursor + 1
+        return self.cursor + 1
 
     def get_content(self):
-	return self.content[self.cursor]
+        return self.content[self.cursor]
 
     def goto_line(self, number):
+        if (number > len(self.content)):
+            raise IndexError("File only has "+str(len(self.content))+" lines.")
         self.cursor = number - 1 # 0-indexing
+
+    def goto_original_line(self, number):
+        if (number > original_num_lines):
+            raise IndexError("Original file only had "+str(original_num_lines)+" lines.")
+            raise Error
+        self.cursor = number + relative_pos[number - 1] - 1
 
     def insert(self, string):
         self.content.insert(self.cursor, (self.ind_string * self.ind_level) + string)

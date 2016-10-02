@@ -46,12 +46,12 @@ int main ( int argc, char **argv ) {
 
 
     // Get array size from first argument
-    std::istringstream ss(argv[1]);
-    int N;
     if (argc != 2){
         std::cerr << "Invalid number of parameters" << std::endl;
         return -1;
     }
+    std::istringstream ss(argv[1]);
+    int N;
     N = atoi(argv[1]);
 
     std::cout << "N is " << N << std::endl;
