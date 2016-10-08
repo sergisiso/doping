@@ -173,7 +173,10 @@ class FORNode (ASTNode) :
     def get_body_string(self):
         body = self.get_children()[3]
         # [:-1] due to a bug in libclang?
-        return [x.spelling for x in body.get_tokens()][:-1]
+        tokens = [x.spelling for x in body.get_tokens()][:-1]
+        #if tokens[-1] == "}":
+        #    tokens = tokens[:-1]
+        return tokens
 
 
     def get_body(self):

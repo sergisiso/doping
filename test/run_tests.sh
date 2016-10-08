@@ -19,16 +19,17 @@ execute () {
     echo "$1" >> $LOGFILE
     echo -n "$1"
     SECONDS=0
-    output=$( $2 &>> $LOGFILE)
+    output=$( $2 &>> $LOGFILE )
     if [ $? == 0 ]; then
         echo -e "[${GREEN}SUCCESS${NC} ($SECONDS sec) ]";
     else
         echo -e "[${RED}FAILED (see $LOGFILE) ${NC}]";
     fi
+    echo "" >> $LOGFILE
 }
 
 #for testdir in helloworld matrixmult flops imgfilt skewedgaussseidel
-for testdir in helloworld matrixmult imgfilt
+for testdir in helloworld matrixmult
 do
     echo "  [[[     Running $testdir TEST     ]]]"
     echo ""
@@ -38,8 +39,8 @@ do
     execute "  * Running native code: " "make runcversion"
     execute "  * Compiling jake code: " "make jake"
     execute "  * Running Jake code: " "make runjake" 
-    execute "  * Compiling manually optimized code: " "make mopt"
-    execute "  * Running manually optimized code: " "make runmopt"
+    #execute "  * Compiling manually optimized code: " "make mopt"
+    #execute "  * Running manually optimized code: " "make runmopt"
     echo ""
 done
 

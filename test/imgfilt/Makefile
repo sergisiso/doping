@@ -2,7 +2,7 @@
 CC = g++
 CFLAGS = -O3 -march=native
 
-JAKE=${JAKEROOT}/jake
+JAKE=${JAKEROOT}/src/jake.py
 
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib
@@ -16,11 +16,10 @@ runcversion:
 	./if.cversion.exe
 
 jake: imgfilt-cpp.cc
-	$(JAKE) imgfilt-cpp.cc if_auto.cc
-	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph if_auto.cc -o if.tgauto.exe
+	$(JAKE) -- $(CC) $(CFLAGS) imgfilt-cpp.cc -o if.jakeversion.exe
 
 runjake:
-	./if.tgauto.exe
+	./if.jakeversion.exe
 
 mopt: imgfilt-tg.cc
 	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe
@@ -29,4 +28,4 @@ runmopt:
 	./if.tgversion.exe
 
 clean:
-	rm  -f *.exe if_auto.cc
+	rm  -f *.exe 

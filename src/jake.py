@@ -11,7 +11,18 @@ from codegen.CodeTransformations import InjectJake, GenerateTaskGraph
 ext = ['.cpp', '.c', '.cc']
 
 def main():
+
+    # Initial checks
+    if not 'JAKEROOT' in os.environ:
+        print "Error: Environment variable JAKEROOT not defined!"
+        exit(-1)
     
+    jakeruntimepath = os.path.join(os.environ['JAKEROOT'],"src/runtime/JakeRuntime.o")
+
+    if not os.path.isfile( jakeruntimepath ):
+        print "Error: Can't find Jake Runtime object file. Is Jake properly compiled?"
+        exit(-1)
+
     # Parse input arguments
     parser = argparse.ArgumentParser(description=" ")
     parser.add_argument('compiler_command', nargs="+", help='the command used by the compiler')
@@ -23,7 +34,7 @@ def main():
     # Link dl and JakeRuntime libraries
     new_compiler_command = args.compiler_command
     new_compiler_command.append("-ldl")
-    new_compiler_command.append("src/runtime/JakeRuntime.o")
+    new_compiler_command.append(jakeruntimepath)
 
     # Source to Source transformation of C/C++ files
     print("Optimizing C/C++ files:")

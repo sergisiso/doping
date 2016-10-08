@@ -88,3 +88,85 @@ int main(){
 
     return 1;
 }*/
+
+
+bool JakeRuntime(time_t * JakeEnd, unsigned * iter, bool continue_loop){
+
+    *JakeEnd = time(NULL) + 2;
+    return continue_loop;
+    /*   FROM PYTHON FILE
+    
+
+            #file.insert("JAKEend = time(NULL) + 2;")
+            #file.insert("JAKElast = time(NULL);")
+            #file.insert("struct timespec JAKEend, JAKElast;")
+            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
+            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
+            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKElast);")
+
+
+ # Runtime analysis
+            #file.insert("float JAKEprogress = float(" + node.cond_variable())
+            #file.insertpl(")/(" + node.cond_end_value()  +" - ")
+            #file.insertpl(node.cond_starting_value() + ");")
+            #file.insert("std::cout << \"Loop at interation \" << x << \" (\" ")
+            #file.insertpl("<< JAKEprogress * 100 << \"%)\" << std::endl ;")
+            #file.insert("std::cout << \"Estimation of Loop total time: \" <<")
+            #file.insertpl(" 2/JAKEprogress << \"secs\" << std::endl ;")
+
+
+if False:
+                file.insert("std::cout << \"I am here\" << std::endl;")        
+                # Replace runtime constants
+                if len(runtime_constants) > 0:
+                    spec_string = "char * specfname = specialize_function("
+                    spec_string = spec_string + "\"" +newfname+ "\"" + ", " + str(len(runtime_constants))
+                    for v in runtime_constants:
+                        file.insert("char JAKEstring"+v.displayname+"[10];")
+                        file.insert("sprintf(JAKEstring"+v.displayname+",\"%d\","+v.displayname+");")
+                        spec_string = spec_string + ", \"" + v.displayname + "\", JAKEstring"+v.displayname 
+
+                    file.insert(spec_string+");")
+                file.insert("std::string command = std::string(\"g++ -fPIC -shared \") + specfname + \" -o \" +specfname+ \".so\";")
+                file.insert("std::cout << \"Compiling: \" << command << std::endl;")        
+                file.insert("system(command.c_str());")
+                #file.insert("system(\"g++ -fPIC -shared \"+specfname+\" -o \"+specfname+\".so\");")
+
+                file.insert("std::cout << \"I am here3\" << std::endl;")        
+                def_func_ptr = "typedef void (*pf)("
+                for v in arrays:
+                    def_func_ptr = def_func_ptr + v.type.spelling + ","
+                def_func_ptr = def_func_ptr[:-1] + ");"
+                file.insert(def_func_ptr)
+
+
+                file.insert("const char * err;")
+                file.insert("void * lib = dlopen((specfname+std::string(\".so\")).c_str(), RTLD_NOW);")
+                file.insert("if (!lib){")
+                file.increase_indexation()
+                file.insert("printf(\"failed to open library .so: %s \\n\", dlerror());")
+                file.insert("exit(1);")
+                file.decrease_indexation()
+                file.insert("}dlerror();")
+                file.insert("pf function = (pf) dlsym(lib, \"loop\");")
+                file.insert("err = dlerror();")
+                file.insert("if (err){")
+                file.increase_indexation()
+                file.insert("printf(\"failed to locate function: %s \\n\", err);")
+                file.insert("exit(1);")
+                file.decrease_indexation()
+                file.insert("}")
+                callstring = "function("
+                for v in arrays:
+                    callstring = callstring + v.displayname + ","
+                callstring = callstring[:-1] + ");"
+                file.insert(callstring)
+                file.insert("dlclose(lib);") 
+
+
+
+    */
+
+
+}
+
