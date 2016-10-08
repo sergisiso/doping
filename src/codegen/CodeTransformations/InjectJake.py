@@ -13,7 +13,7 @@ class InjectJake (CodeTransformation):
         file = self.file
 
         # Get loops in the file
-        candidates = list(self.ast.find_file_loops(True))[:1]
+        candidates = list(self.ast.find_file_loops(True))
         if len(candidates) < 1:
             print("No candidates found for transformation")
             return
@@ -22,7 +22,7 @@ class InjectJake (CodeTransformation):
             print( "  -> Injecting Jake code at loop at " + node.str_position())
 
             # Comment old code
-            file.goto_line(node.get_start())
+            file.goto_original_line(node.get_start())
             file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
             file.insert("//  --------- Old version: ----------")
             for i in range((node.get_end() - node.get_start())+1):
@@ -57,8 +57,8 @@ class InjectJake (CodeTransformation):
             file.insert("float JAKEprogress = float(" + node.cond_variable())
             file.insertpl(")/(" + node.cond_end_value()  +" - ")
             file.insertpl(node.cond_starting_value() + ");")
-            file.insert("std::cout << \"Loop at interation \" << x << \" (\" ")
-            file.insertpl("<< JAKEprogress * 100 << \"%)\" << std::endl ;")
+            #file.insert("std::cout << \"Loop at interation \" << x << \" (\" ")
+            #file.insertpl("<< JAKEprogress * 100 << \"%)\" << std::endl ;")
             file.insert("std::cout << \"Estimation of Loop total time: \" <<")
             file.insertpl(" 2/JAKEprogress << \"secs\" << std::endl ;")
 
@@ -157,10 +157,10 @@ class InjectJake (CodeTransformation):
             file.insert("dlclose(lib);") 
 
         # Add necessary includes
-            file.goto_line(1)
-            file.insert("#include <time.h>")
-            file.insert("#include <dlfcn.h>")
-            file.insert("#include <stdio.h>")
-            file.insert("#include <stdlib.h>")
-            file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
+        file.goto_line(1)
+        file.insert("#include <time.h>")
+        file.insert("#include <dlfcn.h>")
+        file.insert("#include <stdio.h>")
+        file.insert("#include <stdlib.h>")
+        file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
 
