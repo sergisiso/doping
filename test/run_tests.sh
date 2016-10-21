@@ -28,8 +28,8 @@ execute () {
     echo "" >> $LOGFILE
 }
 
-#for testdir in helloworld matrixmult flops imgfilt skewedgaussseidel
-for testdir in helloworld matrixmult
+for testdir in helloworld matrixmult imgfilt skewedgaussseidel
+#for testdir in helloworld matrixmult
 do
     echo "  [[[     Running $testdir TEST     ]]]"
     echo ""
@@ -38,7 +38,8 @@ do
     execute "  * Compiling native code: " "make cversion"
     execute "  * Running native code: " "make runcversion"
     execute "  * Compiling jake code: " "make jake"
-    execute "  * Running Jake code: " "make runjake" 
+    execute "  * Running Jake code: " "make runjake"
+    execute "  * Compare native and jake outputs: " "make compare"
     #execute "  * Compiling manually optimized code: " "make mopt"
     #execute "  * Running manually optimized code: " "make runmopt"
     echo ""

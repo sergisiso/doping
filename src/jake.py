@@ -12,7 +12,7 @@ ext = ['.cpp', '.c', '.cc']
 
 def main():
 
-    # Initial checks
+    # Initial Environment checks
     if not 'JAKEROOT' in os.environ:
         print "Error: Environment variable JAKEROOT not defined!"
         exit(-1)
@@ -51,7 +51,8 @@ def main():
     # Compile the generated code
     print("Compiling code:")
     print(' '.join(new_compiler_command))
-    call(list(new_compiler_command), shell=False)
+    ret = call(list(new_compiler_command), shell=False)
+    exit(ret)
 
 if __name__ == "__main__":
     main()

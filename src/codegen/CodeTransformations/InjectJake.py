@@ -34,24 +34,29 @@ class InjectJake (CodeTransformation):
             file.insert("//  --------- New version: ----------")
             timevar = "JAKEEnd"+str(LoopID)
             file.insert("time_t "+timevar+";")
-
-            #Create profiled version
-            file.insert(" ".join(node.get_init_string()))
+            file.insert(node.get_init_string()+";")
             file.insert("while (JakeRuntime(&"+timevar+",&" + node.cond_variable() \
-                    + "," + " ".join(node.get_cond_string()[:-1]) + ")){" )
+                    + "," + node.get_cond_string() + ")){" )
             file.increase_indexation()
+
+            #print node.get_string()
+
+            #print node.get_init_string()
+            #print node.get_cond_string()
+            #print node.get_incr_string()
+            #print node.get_body_string()
+
+
+            # Write original loop with time exit condition
             file.insert("// Unmodified loop")
-            file.insert("for(;")
-            newcond = node.get_cond_string()
-            newcond.insert( 0, "(")
-            newcond.insert(-1, " ) && time(NULL) < "+timevar)
-            file.insertpl(" ".join(newcond))
-            file.insertpl(" ".join(node.get_incr_string()))
+            file.insert("for(; (" + node.get_cond_string())
+            file.insertpl(" ) && time(NULL) < "+timevar+";")
+            file.insertpl(node.get_incr_string())
             file.increase_indexation()
-            file.insert(" ".join(node.get_body_string()))
+            file.insert(node.get_body_string())
             file.decrease_indexation()
             file.decrease_indexation()
-            file.insert("}")
+            file.insert("} //end while loop")
 
             # Create new version
             fname, fext = os.path.splitext(self.filename)

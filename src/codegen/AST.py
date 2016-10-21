@@ -159,34 +159,48 @@ class FORNode (ASTNode) :
 
     def get_init_string(self):  
         init = self.get_children()[0]
-        # [:-1] due to a bug in libclang?
-        return [x.spelling for x in init.get_tokens()][:-1]
+        # bug in libclang get_tokens, it returns one more token than needed
+        tokens = [x.spelling for x in init.get_tokens()]
+        tokens = tokens[:tokens.index(";")]
+        return " ".join(tokens)
 
     def get_cond_string(self):
         cond = self.get_children()[1]
-        return [x.spelling for x in cond.get_tokens()]
+        tokens = [x.spelling for x in cond.get_tokens()]
+        tokens = tokens[:tokens.index(";")]
+        return " ".join(tokens)
 
     def get_incr_string(self):
         incr = self.get_children()[2]
-        return [x.spelling for x in incr.get_tokens()]
+        return " ".join([x.spelling for x in incr.get_tokens()])
 
     def get_body_string(self):
         body = self.get_children()[3]
+        # bug in libclang get_tokens, it returns one more token than needed
         # [:-1] due to a bug in libclang?
-        tokens = [x.spelling for x in body.get_tokens()][:-1]
-        #if tokens[-1] == "}":
-        #    tokens = tokens[:-1]
-        return tokens
+        string = ""
+        line = list(body.get_tokens())[0].location.line
+        for token in list(body.get_tokens())[:-1]:
+            while (token.location.line > line):
+                line = line + 1
+                string = string + "\n"
+            string = string + " " + token.spelling
+
+
+        # bug in libclang get_tokens, it returns one more token than needed
+        string = string + ";"
+        return string
 
 
     def get_body(self):
         return self.get_children()[3]
 
     def cond_variable(self):
-        tokens = self.get_init_string()
+        init = self.get_children()[0]
+        tokens = [x.spelling for x in init.get_tokens()]
         if tokens.count("=") == 1:
             eqindex = tokens.index("=")
-            return tokens[eqindex - 1]
+            return " ".join(tokens[eqindex - 1])
         else:
             raise NotImplementedError("Just implemented for loops with simple initialization")
 

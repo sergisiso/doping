@@ -70,7 +70,7 @@ int main ( int argc, char **argv ) {
 	matrixMult ( a, b, c, N);
     clock_t end = clock();
     int msec = (end-start)*1000/ CLOCKS_PER_SEC;
-	std::cout << "Matrix multiplication took " << msec/1000 << "." << msec%1000 << "s" << std::endl;
+    //std::cout << "Matrix multiplication took " << msec/1000 << "." << msec%1000 << "s" << std::endl;
     int res = sumAll(c,N);
 	std::cout << "Sum of the result = " << res << std::endl;
 
