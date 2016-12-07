@@ -6,7 +6,7 @@ import argparse
 from shutil import copyfile
 from subprocess import call
 from codegen.Rewriter import Rewriter
-from codegen.CodeTransformations import InjectJake, GenerateTaskGraph
+from codegen.CodeTransformations import InjectJake
 
 ext = ['.cpp', '.c', '.cc']
 

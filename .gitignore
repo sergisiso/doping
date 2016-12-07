@@ -6,5 +6,4 @@
 **/*.jake.cpp
 **/__pycache__
 sourceme
-deps/taskgraph-*
 **/**/__pycache__/

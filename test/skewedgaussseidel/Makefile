@@ -7,19 +7,19 @@ JAKE=${JAKEROOT}/src/jake.py
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib
 
-all: cversion mopt jake
+all: cversion jake
 
-cversion: imgfilt-cpp.cc
-	$(CC) $(CFLAGS) imgfilt-cpp.cc -o if.cversion.exe
+cversion: skewedgaussseidel.cc
+	$(CC) $(CFLAGS) skewedgaussseidel.cc -o sgs.cversion.exe
 
 runcversion:
-	./if.cversion.exe
+	./sgs.cversion.exe
 
-jake: imgfilt-cpp.cc
-	$(JAKE) -- $(CC) $(CFLAGS) imgfilt-cpp.cc -o if.jakeversion.exe
+jake: skewedgaussseidel.cc
+	$(JAKE) -- $(CC) $(CFLAGS) skewedgaussseidel.cc -o sgs.jakeversion.exe
 
 runjake:
-	./if.jakeversion.exe
+	./sgs.jakeversion.exe
 
 mopt: imgfilt-tg.cc
 	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe
@@ -28,4 +28,4 @@ runmopt:
 	./if.tgversion.exe
 
 clean:
-	rm  -f *.exe *.loop.cc
+	rm  -f *.exe 

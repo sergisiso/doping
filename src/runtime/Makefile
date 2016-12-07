@@ -1,2 +1,2 @@
 all:
-	g++ -c JakeRuntime.c
+	g++ -c -ldl JakeRuntime.c

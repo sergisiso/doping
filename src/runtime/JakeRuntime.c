@@ -1,5 +1,32 @@
 #include "JakeRuntime.h"
 
+#define ERROR   1
+#define WARNING 2
+#define MSG     3
+#define DEBUG   4
+
+void print(int priority, const char * message, ...){
+    va_list args;
+    va_start(args, message);
+    switch(priority){
+        case ERROR:
+            printf("JAKE ERROR: ");
+            break;
+        case WARNING:
+            printf("JAKE WARNING: ");
+            break;
+        case MSG:
+            printf("JAKE MSG: ");
+            break;
+        case DEBUG:
+            printf("JAKE DEBUG: ");
+            break;
+    }
+    vprintf(message, args);
+    printf("\n");
+    va_end(args);
+
+}
 
 int str_replace ( char * string, const char *substr, const char *replacement ){
   char *tok = NULL;
@@ -27,7 +54,7 @@ int str_replace ( char * string, const char *substr, const char *replacement ){
   return 0;
 }
 
-char* specialize_function(char const * fname, int num_parameters, ...){
+char * specialize_function(char const * fname, int num_parameters, ...){
     va_list list;
     printf("Specializing %s\n", fname);
     // Generate specialized file name
@@ -80,93 +107,64 @@ char* specialize_function(char const * fname, int num_parameters, ...){
     return newfname;
 }
 
-/*
-int main(){
-    printf("testing variadic function\n");
 
-    specialize_function("/home/sergi/jake/test/matrixmult/mm.jake.loop.cc",1,"MATRIXSIZE","1024");
+bool JakeRuntime( char * fname, time_t * JakeEnd, unsigned * iter, unsigned start_iter, \
+        unsigned iterspace, bool continue_loop, unsigned num_runtime_ct, \
+        ...){
 
-    return 1;
-}*/
+    printf(" JAKE Runtime Analysis for loop X\n" );
 
+    // Decide if it is worth to continue with the original loop or 
+    // recompile a new version
+    float progress = float(*iter)/(iterspace - start_iter);
 
-bool JakeRuntime(time_t * JakeEnd, unsigned * iter, bool continue_loop){
+    printf("Loop at iteration: %u Progress %f \n", *iter, 100 * progress );
+    printf("Estimate remaining time %f secs ", 2/progress );
 
-    *JakeEnd = time(NULL) + 2;
-    return continue_loop;
-    /*   FROM PYTHON FILE
-    
+    float threshold = 0.5;
+    if ( ( *iter > start_iter ) && ( progress < threshold) ){
+        // Recompile loop and continue execution
+        va_list args;
+        va_start(args, num_runtime_ct);
+        char * specfname = specialize_function(fname, num_runtime_ct, args);
+        va_end(args);
 
-            #file.insert("JAKEend = time(NULL) + 2;")
-            #file.insert("JAKElast = time(NULL);")
-            #file.insert("struct timespec JAKEend, JAKElast;")
-            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
-            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKEend);")
-            #file.insert("clock_gettime(CLOCK_MONOTONIC, &JAKElast);")
-
-
- # Runtime analysis
-            #file.insert("float JAKEprogress = float(" + node.cond_variable())
-            #file.insertpl(")/(" + node.cond_end_value()  +" - ")
-            #file.insertpl(node.cond_starting_value() + ");")
-            #file.insert("std::cout << \"Loop at interation \" << x << \" (\" ")
-            #file.insertpl("<< JAKEprogress * 100 << \"%)\" << std::endl ;")
-            #file.insert("std::cout << \"Estimation of Loop total time: \" <<")
-            #file.insertpl(" 2/JAKEprogress << \"secs\" << std::endl ;")
+        char command[1024]; // Implement better solution (with realloc?)
+        char libname[1024];
 
 
-if False:
-                file.insert("std::cout << \"I am here\" << std::endl;")        
-                # Replace runtime constants
-                if len(runtime_constants) > 0:
-                    spec_string = "char * specfname = specialize_function("
-                    spec_string = spec_string + "\"" +newfname+ "\"" + ", " + str(len(runtime_constants))
-                    for v in runtime_constants:
-                        file.insert("char JAKEstring"+v.displayname+"[10];")
-                        file.insert("sprintf(JAKEstring"+v.displayname+",\"%d\","+v.displayname+");")
-                        spec_string = spec_string + ", \"" + v.displayname + "\", JAKEstring"+v.displayname 
+        snprintf(libname, sizeof(libname), "%s%s", specfname, ".so");
+        snprintf(command, sizeof(command), "%s%s%s%s", "g++ -fPIC -shared", fname, \
+                " -o ", libname);
+        printf("Compiling: %s ", command );
+        system(command);
+        printf("Compilation complete! " );
+        
+        typedef void (*pf)();
+        const char* err;
 
-                    file.insert(spec_string+");")
-                file.insert("std::string command = std::string(\"g++ -fPIC -shared \") + specfname + \" -o \" +specfname+ \".so\";")
-                file.insert("std::cout << \"Compiling: \" << command << std::endl;")        
-                file.insert("system(command.c_str());")
-                #file.insert("system(\"g++ -fPIC -shared \"+specfname+\" -o \"+specfname+\".so\");")
+        void * lib = dlopen(libname, RTLD_NOW);
+        if (!lib) {
+            printf("failed to open library .so: %s \n", dlerror());
+            exit(1);
+        }dlerror();
 
-                file.insert("std::cout << \"I am here3\" << std::endl;")        
-                def_func_ptr = "typedef void (*pf)("
-                for v in arrays:
-                    def_func_ptr = def_func_ptr + v.type.spelling + ","
-                def_func_ptr = def_func_ptr[:-1] + ");"
-                file.insert(def_func_ptr)
+        pf function = (pf) dlsym(lib,"function_name");
+        if(err){
+            printf("failed to open locate function: %s \n", dlerror());
+            exit(2);
+        }
 
+        function();
 
-                file.insert("const char * err;")
-                file.insert("void * lib = dlopen((specfname+std::string(\".so\")).c_str(), RTLD_NOW);")
-                file.insert("if (!lib){")
-                file.increase_indexation()
-                file.insert("printf(\"failed to open library .so: %s \\n\", dlerror());")
-                file.insert("exit(1);")
-                file.decrease_indexation()
-                file.insert("}dlerror();")
-                file.insert("pf function = (pf) dlsym(lib, \"loop\");")
-                file.insert("err = dlerror();")
-                file.insert("if (err){")
-                file.increase_indexation()
-                file.insert("printf(\"failed to locate function: %s \\n\", err);")
-                file.insert("exit(1);")
-                file.decrease_indexation()
-                file.insert("}")
-                callstring = "function("
-                for v in arrays:
-                    callstring = callstring + v.displayname + ","
-                callstring = callstring[:-1] + ");"
-                file.insert(callstring)
-                file.insert("dlclose(lib);") 
+        dlclose(lib);
 
-
-
-    */
-
+        return false;
+    }else{
+        // Continue original loop
+        *JakeEnd = time(NULL) + 2;
+        return continue_loop;
+    }
 
 }
 

@@ -35,8 +35,11 @@ class InjectJake (CodeTransformation):
             timevar = "JAKEEnd"+str(LoopID)
             file.insert("time_t "+timevar+";")
             file.insert(node.get_init_string()+";")
-            file.insert("while (JakeRuntime(&"+timevar+",&" + node.cond_variable() \
-                    + "," + node.get_cond_string() + ")){" )
+            file.insert("while ( JakeRuntime( \"loop"+ str(LoopID) + "\"" \
+                    + ", &"+timevar+",&" + node.cond_variable() \
+                    + ", " + node.cond_starting_value() + ", " + node.cond_end_value() \
+                    + ", " + node.get_cond_string() + ", 0" \
+                    + ")){" )
             file.increase_indexation()
 
             #print node.get_string()

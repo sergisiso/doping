@@ -164,11 +164,22 @@ class FORNode (ASTNode) :
         tokens = tokens[:tokens.index(";")]
         return " ".join(tokens)
 
+    def get_init_tokens(self):
+        init = self.get_children()[0]
+        # bug in libclang get_tokens, it returns one more token than needed
+        tokens = [x.spelling for x in init.get_tokens()]
+        return tokens[:tokens.index(";")]
+
     def get_cond_string(self):
         cond = self.get_children()[1]
         tokens = [x.spelling for x in cond.get_tokens()]
         tokens = tokens[:tokens.index(";")]
         return " ".join(tokens)
+
+    def get_cond_tokens(self):
+        cond = self.get_children()[1]
+        tokens = [x.spelling for x in cond.get_tokens()]
+        return tokens[:tokens.index(";")]
 
     def get_incr_string(self):
         incr = self.get_children()[2]
@@ -205,7 +216,8 @@ class FORNode (ASTNode) :
             raise NotImplementedError("Just implemented for loops with simple initialization")
 
     def cond_starting_value(self):
-        tokens = self.get_init_string()
+        tokens = self.get_init_tokens()
+
         if tokens.count("=") == 1:
             eqindex = tokens.index("=")
             return tokens[eqindex + 1]
@@ -216,8 +228,12 @@ class FORNode (ASTNode) :
     def cond_end_value(self):
 
         # FIXME: Probably it just work with possitive numbers
-        tokens = self.get_cond_string()
-        endindex = tokens.index(";")
+        tokens = self.get_cond_tokens()
+
+        try:
+            endindex = tokens.index(";")
+        except:
+            endindex = len(tokens)
         addition = ""
 
         if tokens.count("<") == 1:
@@ -233,8 +249,9 @@ class FORNode (ASTNode) :
         else:
             raise NotImplementedError("Just implemented for loops with simple conditions")
 
-        return "(" + " ".join(tokens[startindex + 1 : endindex]) + addition + ")"
+        
 
+        return "(" + " ".join(tokens[startindex + 1 : endindex]) + addition + ")"
 
 
     def get_first_n_cond_tokens(self, n = 16):
