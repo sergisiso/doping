@@ -21,7 +21,6 @@ class CodeTransformation:
         self.ast = AST(self.filename)
         ret = self._apply()
         self.file.save()
-        self.file.printall()
 	return ret
 
     def _apply(self):

@@ -29,4 +29,4 @@ runmopt:
 	./mm.manualopt.exe 1000
 
 clean:
-	rm  -f *.exe *.output
+	rm  -f *.exe *.output mm.jake.*

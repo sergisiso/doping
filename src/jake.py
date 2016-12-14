@@ -17,7 +17,7 @@ def main():
         print "Error: Environment variable JAKEROOT not defined!"
         exit(-1)
     
-    jakeruntimepath = os.path.join(os.environ['JAKEROOT'],"src/runtime/JakeRuntime.o")
+    jakeruntimepath = os.path.join(os.environ['JAKEROOT'],"bin/JakeRuntime.o")
 
     if not os.path.isfile( jakeruntimepath ):
         print "Error: Can't find Jake Runtime object file. Is Jake properly compiled?"
@@ -31,10 +31,10 @@ def main():
     # Find C/C++ files in the input commnad
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
 
-    # Link dl and JakeRuntime libraries
+    # Link dl and JakeRuntime libraries (order is important!)
     new_compiler_command = args.compiler_command
-    new_compiler_command.append("-ldl")
     new_compiler_command.append(jakeruntimepath)
+    new_compiler_command.append("-ldl")
 
     # Source to Source transformation of C/C++ files
     print("Optimizing C/C++ files:")

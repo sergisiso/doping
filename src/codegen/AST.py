@@ -330,20 +330,6 @@ class FORNode (ASTNode) :
                     runtime_constants.append(access)
 
 
-        print ("Local vars: ")
-        for var in local_vars:
-            print "  Found "+ var.displayname + " ("+ var.type.spelling + ")"
-        print ("Arrays: " )
-        for var in arrays:
-            v = var.get_children()[0]
-            print "  Found "+ v.displayname + " ("+ v.type.spelling + ")"
-        print ("Scalar writes: " )
-        for var in written_scalars:
-            print "  Found "+ var.displayname + " ("+ var.type.spelling + ")"
-        print ("Vars for delayed evaluation: " )
-        for var in runtime_constants:
-            print "  Found "+ var.displayname + " ("+ var.type.spelling + ")"
-
         return local_vars, arrays, written_scalars, runtime_constants
 
 

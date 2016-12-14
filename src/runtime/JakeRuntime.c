@@ -54,26 +54,24 @@ int str_replace ( char * string, const char *substr, const char *replacement ){
   return 0;
 }
 
-char * specialize_function(char const * fname, int num_parameters, ...){
-    va_list list;
-    printf("Specializing %s\n", fname);
+char * specialize_function(char const * fname, int num_parameters, va_list args){
+    print(DEBUG, "Specializing function %s with %d parameters:", fname, num_parameters);
     // Generate specialized file name
     size_t str_len = strlen(fname) + 1;
     char * newfname = (char *)malloc(str_len);
-    strncpy(newfname, fname, strrchr(fname,'.') - fname);
+    sprintf(newfname, "%s%s", fname, ".");
 
-    va_start(list, num_parameters);
     for(int i = 0; i < num_parameters; i++){
-        char const * new_name = va_arg(list, char const *);
-        char const * new_value = va_arg(list, char const *);
+        char * new_name = va_arg(args, char *);
+        char * new_value = va_arg(args, char *);
+        print(DEBUG, " - %s as %s", new_name, new_value);
         str_len += strlen(new_value) + 1; // +1 for the underscore
         newfname = (char *) realloc(newfname,str_len);
-        strncat(strncat(newfname,"_",str_len),new_value,str_len);
+        sprintf(newfname + strlen(newfname), "%s", new_value);
     }
-    va_end(list);
-    strncat(newfname,strrchr(fname,'.'),str_len);
     
-    printf("%s \n", newfname);
+    print(DEBUG, " Specialized function filename: %s \n", newfname);
+    exit(0);
     // Substitue JAKE PLACEHOLDERS with appropiate values
 
 
@@ -87,17 +85,15 @@ char * specialize_function(char const * fname, int num_parameters, ...){
     fclose(f);
 
     // Replace placeholders for each runtime-constant variable
-    va_start(list, num_parameters);
     for(int i = 0; i < num_parameters; i++){
-        char const * new_name = va_arg(list, char const *);
-        char const * new_value = va_arg(list, char const *);
+        char const * new_name = va_arg(args, char const *);
+        char const * new_value = va_arg(args, char const *);
         char const * tag = "JAKEPLACEHOLDER_";
         char * placeholder = (char *) malloc(strlen(tag)+strlen(new_name));
         strcpy(placeholder,tag);
         strcat(placeholder,new_name);
         str_replace(fcontent,placeholder,new_value);
     }
-    va_end(list);
     
     // Write specialized file
     FILE * fo = (FILE*) fopen(newfname,"w");
@@ -108,30 +104,31 @@ char * specialize_function(char const * fname, int num_parameters, ...){
 }
 
 
-bool JakeRuntime( char * fname, time_t * JakeEnd, unsigned * iter, unsigned start_iter, \
-        unsigned iterspace, bool continue_loop, unsigned num_runtime_ct, \
-        ...){
-
-    printf(" JAKE Runtime Analysis for loop X\n" );
+bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, unsigned start_iter, \
+        unsigned iterspace, bool continue_loop, unsigned num_runtime_ct, ...){
 
     // Decide if it is worth to continue with the original loop or 
     // recompile a new version
     float progress = float(*iter)/(iterspace - start_iter);
-
-    printf("Loop at iteration: %u Progress %f \n", *iter, 100 * progress );
-    printf("Estimate remaining time %f secs ", 2/progress );
-
     float threshold = 0.5;
+
     if ( ( *iter > start_iter ) && ( progress < threshold) ){
         // Recompile loop and continue execution
+        print(MSG,"JAKE Runtime Analysis for %s", fname );
+        print(MSG,"Loop at iteration: %u (%f \%) (Remaining time: %f s)", *iter, 100 * progress, 2/progress );
+        print(MSG,"%f < %f -> Decided to recompile", progress, threshold );
+
+        // Specialize template function with delayed evaluation parameters
         va_list args;
         va_start(args, num_runtime_ct);
         char * specfname = specialize_function(fname, num_runtime_ct, args);
         va_end(args);
+        exit(0);
 
+
+        // Prepare recompilation command and execute
         char command[1024]; // Implement better solution (with realloc?)
         char libname[1024];
-
 
         snprintf(libname, sizeof(libname), "%s%s", specfname, ".so");
         snprintf(command, sizeof(command), "%s%s%s%s", "g++ -fPIC -shared", fname, \
@@ -139,7 +136,8 @@ bool JakeRuntime( char * fname, time_t * JakeEnd, unsigned * iter, unsigned star
         printf("Compiling: %s ", command );
         system(command);
         printf("Compilation complete! " );
-        
+
+        // Link new object file to current executable        
         typedef void (*pf)();
         const char* err;
 
@@ -161,7 +159,7 @@ bool JakeRuntime( char * fname, time_t * JakeEnd, unsigned * iter, unsigned star
 
         return false;
     }else{
-        // Continue original loop
+        // Continue original loop setting a new stop timer
         *JakeEnd = time(NULL) + 2;
         return continue_loop;
     }
