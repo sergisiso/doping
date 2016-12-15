@@ -55,28 +55,15 @@ int str_replace ( char * string, const char *substr, const char *replacement ){
 }
 
 char * specialize_function(char const * fname, int num_parameters, va_list args){
-    print(DEBUG, "Specializing function %s with %d parameters:", fname, num_parameters);
-    // Generate specialized file name
-    size_t str_len = strlen(fname) + 1;
-    char * newfname = (char *)malloc(str_len);
-    sprintf(newfname, "%s%s", fname, ".");
 
-    for(int i = 0; i < num_parameters; i++){
-        char * new_name = va_arg(args, char *);
-        char * new_value = va_arg(args, char *);
-        print(DEBUG, " - %s as %s", new_name, new_value);
-        str_len += strlen(new_value) + 1; // +1 for the underscore
-        newfname = (char *) realloc(newfname,str_len);
-        sprintf(newfname + strlen(newfname), "%s", new_value);
-    }
-    
-    print(DEBUG, " Specialized function filename: %s \n", newfname);
-    exit(0);
-    // Substitue JAKE PLACEHOLDERS with appropiate values
-
-
-    // Open input file and get all the contents    
+    // Open input file and get all the contents
+    extern int errno;
     FILE * f = (FILE*) fopen(fname,"r");
+    if(f == NULL){
+        print(ERROR, " Error opening %s file: (errno %d) %s", \
+                fname, errno, strerror(errno));
+        exit(0);
+    }
     fseek(f,0,SEEK_END);
     long size = ftell(f);
     fseek(f,0,SEEK_SET);
@@ -84,19 +71,46 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
     fread(fcontent,1,size,f);
     fclose(f);
 
-    // Replace placeholders for each runtime-constant variable
+    // Generate specialized file name
+    print(DEBUG, "Specializing function %s with %d parameters:", fname, num_parameters);
+    size_t str_len = strlen(fname);
+    char * newfname = (char *)malloc(str_len);
+    const char * lastdot = strrchr(fname,'.');
+    strncpy(newfname, fname, (lastdot - fname));
+    
+    // For each parameter conncatenate value on the filename 
     for(int i = 0; i < num_parameters; i++){
-        char const * new_name = va_arg(args, char const *);
-        char const * new_value = va_arg(args, char const *);
+        char * new_name = va_arg(args, char *);
+        char * new_value = va_arg(args, char *);
+        print(DEBUG, " - %s as %s", new_name, new_value);
+
+        // Concatenate new value to the specialized file name
+        str_len += strlen(new_value) + 1; // +1 for the underscore
+        newfname = (char *) realloc(newfname,str_len);
+        sprintf(newfname + strlen(newfname), ".%s", new_value);
+
+        // Replace placeholders on the file contents for the runtime-constant
         char const * tag = "JAKEPLACEHOLDER_";
         char * placeholder = (char *) malloc(strlen(tag)+strlen(new_name));
         strcpy(placeholder,tag);
         strcat(placeholder,new_name);
         str_replace(fcontent,placeholder,new_value);
     }
-    
+
+    // Add file extension at the end (realloc not needed because initial
+    // malloc already counts the extension)
+    sprintf(newfname + strlen(newfname), "%s", lastdot);
+
+    print(DEBUG, "New function filename: %s", newfname);
+    print(DEBUG, "Content:\n%s\n", fcontent);
+
     // Write specialized file
     FILE * fo = (FILE*) fopen(newfname,"w");
+    if(fo == NULL){
+        print(ERROR, " Error opening %s file: (errno %d) %s", \
+                newfname, errno, strerror(errno));
+        exit(0);
+    }
     fprintf(fo, "%s", fcontent);
     fclose(fo);
 
@@ -104,8 +118,9 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
 }
 
 
-bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, unsigned start_iter, \
-        unsigned iterspace, bool continue_loop, unsigned num_runtime_ct, ...){
+bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
+        unsigned start_iter, unsigned iterspace, bool continue_loop, \
+        unsigned num_runtime_ct, ...){
 
     // Decide if it is worth to continue with the original loop or 
     // recompile a new version
@@ -122,8 +137,7 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, unsigne
         va_list args;
         va_start(args, num_runtime_ct);
         char * specfname = specialize_function(fname, num_runtime_ct, args);
-        va_end(args);
-        exit(0);
+        // do not end va_args, it continues latter.
 
 
         // Prepare recompilation command and execute
@@ -131,29 +145,41 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, unsigne
         char libname[1024];
 
         snprintf(libname, sizeof(libname), "%s%s", specfname, ".so");
-        snprintf(command, sizeof(command), "%s%s%s%s", "g++ -fPIC -shared", fname, \
+        snprintf(command, sizeof(command), "%s%s%s%s", "g++ -O3 -march=native -fPIC -shared ", specfname, \
                 " -o ", libname);
-        printf("Compiling: %s ", command );
-        system(command);
-        printf("Compilation complete! " );
+        print(DEBUG, "Compiling: %s ", command );
+        FILE *compilation = popen(command, "r");
+        if (compilation == NULL){
+            print(ERROR, "Compilation filed ", command );
+            exit(0);
+        }else{
+            char line[1024];
+            while (fgets(line, sizeof(line), compilation) != NULL) {
+                print(DEBUG, "%s", line);
+            }
+            pclose(compilation);
+        }
+
 
         // Link new object file to current executable        
-        typedef void (*pf)();
+        typedef void (*pf)(va_list);
         const char* err;
 
         void * lib = dlopen(libname, RTLD_NOW);
         if (!lib) {
-            printf("failed to open library .so: %s \n", dlerror());
-            exit(1);
-        }dlerror();
-
-        pf function = (pf) dlsym(lib,"function_name");
-        if(err){
-            printf("failed to open locate function: %s \n", dlerror());
+            print(ERROR, "Failed to open library .so: %s \n", dlerror());
+            exit(3);
+        }
+        pf function = (pf) dlsym(lib,"loop");
+        if(!function){
+            print(ERROR, "Failed to open locate function: %s \n", dlerror());
             exit(2);
         }
 
-        function();
+        print(DEBUG, "Compilation and linking successful!", command );
+
+        function(args);
+        va_end(args);
 
         dlclose(lib);
 

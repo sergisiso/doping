@@ -4,11 +4,11 @@
 #include <sstream>
 
 
-void matrixMult ( double *__restrict__ a, double *__restrict__ b, double *__restrict__ c, int MATRIXSIZE) {
-	for ( unsigned x = 0; x < 1000; ++x ) {
-		for ( unsigned y = 0; y < 1000; ++y ) {
-			for ( unsigned z = 0; z < 1000; ++z ) {
-				c[x * 1000 + y] += a[x * 1000 + z] * b[z * 1000 + y];
+void matrixMult ( double *a, double *b, double *c, int MATRIXSIZE) {
+	for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
+		for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
+			for ( unsigned z = 0; z < MATRIXSIZE; ++z ) {
+				c[x * MATRIXSIZE + y] += a[x * MATRIXSIZE + z] * b[z * MATRIXSIZE + y];
 			}
 		}
 	}

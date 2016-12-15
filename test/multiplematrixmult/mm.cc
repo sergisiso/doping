@@ -4,14 +4,16 @@
 #include <sstream>
 
 
-void matrixMult ( double *__restrict__ a, double *__restrict__ b, double *__restrict__ c, int MATRIXSIZE) {
-	for ( unsigned x = 0; x < 1000; ++x ) {
-		for ( unsigned y = 0; y < 1000; ++y ) {
-			for ( unsigned z = 0; z < 1000; ++z ) {
-				c[x * 1000 + y] += a[x * 1000 + z] * b[z * 1000 + y];
-			}
-		}
-	}
+void do_x_matrixMult ( unsigned num, double *a, double *b, double *c, int MATRIXSIZE) {
+    for ( unsigned n = 0; n < num; n++){
+	    for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
+		    for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
+			    for ( unsigned z = 0; z < MATRIXSIZE; ++z ) {
+				    c[x * MATRIXSIZE + y] += a[x * MATRIXSIZE + z] * b[z * MATRIXSIZE + y];
+			    }
+		    }
+	    }
+    }
 }
 
 void randomInitMatrix ( double *m, int MATRIXSIZE ) {
@@ -46,13 +48,14 @@ int main ( int argc, char **argv ) {
 
 
     // Get array size from first argument
-    if (argc != 2){
+    if (argc != 3){
         std::cerr << "Invalid number of parameters" << std::endl;
         return -1;
     }
-    std::istringstream ss(argv[1]);
     int N;
     N = atoi(argv[1]);
+    int rep;
+    rep = atoi(argv[2]);
 
     std::cout << "N is " << N << std::endl;
 
@@ -67,10 +70,10 @@ int main ( int argc, char **argv ) {
 	// baseline non-taskgraph version
 	zeroMatrix ( c, N);
     clock_t start = clock();
-	matrixMult ( a, b, c, N);
+	do_x_matrixMult (rep, a, b, c, N);
     clock_t end = clock();
     int msec = (end-start)*1000/ CLOCKS_PER_SEC;
-	std::cout << "Matrix multiplication took " << msec/1000 << "." << msec%1000 << "s" << std::endl;
+    //std::cout << "Matrix multiplication took " << msec/1000 << "." << msec%1000 << "s" << std::endl;
     int res = sumAll(c,N);
 	std::cout << "Sum of the result = " << res << std::endl;
 
