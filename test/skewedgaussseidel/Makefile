@@ -28,4 +28,4 @@ runmopt:
 	./if.tgversion.exe
 
 clean:
-	rm  -f *.exe 
+	rm  -f *.exe *.output skewedgaussseidel.jake.*

@@ -1,4 +1,5 @@
 #include "JakeRuntime.h"
+#include <unistd.h>
 
 #define ERROR   1
 #define WARNING 2
@@ -29,29 +30,29 @@ void print(int priority, const char * message, ...){
 }
 
 int str_replace ( char * string, const char *substr, const char *replacement ){
-  char *tok = NULL;
-  char *newstr = NULL;
-  char *oldstr = NULL;
-  /* if either substr or replacement is NULL, duplicate string a let caller handle it */
-  if ( substr == NULL || replacement == NULL ) return -1;
-  newstr = strdup (string);
-  while ( (tok = strstr ( newstr, substr ))){
-    oldstr = newstr;
-    newstr = (char* ) malloc ( strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) + 1 );
-    /*failed to alloc mem, free old string and return NULL */
-    if ( newstr == NULL ){
-      free (oldstr);
-      return -2;
+    char *tok = NULL;
+    char *newstr = NULL;
+    char *oldstr = NULL;
+    /* if either substr or replacement is NULL, duplicate string a let caller handle it */
+    if ( substr == NULL || replacement == NULL ) return -1;
+    newstr = strdup (string);
+    while ( (tok = strstr ( newstr, substr ))){
+        oldstr = newstr;
+        newstr = (char* ) malloc ( strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) + 1 );
+        /*failed to alloc mem, free old string and return NULL */
+        if ( newstr == NULL ){
+            free (oldstr);
+            return -2;
+        }
+        memcpy ( newstr, oldstr, tok - oldstr );
+        memcpy ( newstr + (tok - oldstr), replacement, strlen ( replacement ) );
+        memcpy ( newstr + (tok - oldstr) + strlen( replacement ), tok + strlen ( substr ), strlen ( oldstr ) - strlen ( substr ) - ( tok - oldstr ) );
+        memset ( newstr + strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) , 0, 1 );
+        free (oldstr);
     }
-    memcpy ( newstr, oldstr, tok - oldstr );
-    memcpy ( newstr + (tok - oldstr), replacement, strlen ( replacement ) );
-    memcpy ( newstr + (tok - oldstr) + strlen( replacement ), tok + strlen ( substr ), strlen ( oldstr ) - strlen ( substr ) - ( tok - oldstr ) );
-    memset ( newstr + strlen ( oldstr ) - strlen ( substr ) + strlen ( replacement ) , 0, 1 );
-    free (oldstr);
-  }
-  string = (char*) realloc(string, strlen(newstr));
-  strcpy(string,newstr); 
-  return 0;
+    string = (char*) realloc(string, strlen(newstr));
+    strcpy(string,newstr);
+    return 0;
 }
 
 char * specialize_function(char const * fname, int num_parameters, va_list args){
@@ -73,12 +74,14 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
 
     // Generate specialized file name
     print(DEBUG, "Specializing function %s with %d parameters:", fname, num_parameters);
-    size_t str_len = strlen(fname);
+    size_t str_len = strlen(fname) + 5;
     char * newfname = (char *)malloc(str_len);
     const char * lastdot = strrchr(fname,'.');
-    strncpy(newfname, fname, (lastdot - fname));
-    
-    // For each parameter conncatenate value on the filename 
+    snprintf(newfname, (lastdot - fname) + 1, "%s", fname);
+    //strncpy(newfname, fname, (lastdot - fname));
+
+    print(DEBUG, "New function filename: %s", newfname);
+    // For each parameter conncatenate value on the filename
     for(int i = 0; i < num_parameters; i++){
         char * new_name = va_arg(args, char *);
         char * new_value = va_arg(args, char *);
@@ -95,6 +98,7 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
         strcpy(placeholder,tag);
         strcat(placeholder,new_name);
         str_replace(fcontent,placeholder,new_value);
+        print(DEBUG, "New function filename: %s", newfname);
     }
 
     // Add file extension at the end (realloc not needed because initial
@@ -122,7 +126,7 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
 
-    // Decide if it is worth to continue with the original loop or 
+    // Decide if it is worth to continue with the original loop or
     // recompile a new version
     float progress = float(*iter)/(iterspace - start_iter);
     float threshold = 0.5;
@@ -144,7 +148,7 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         char command[1024]; // Implement better solution (with realloc?)
         char libname[1024];
 
-        snprintf(libname, sizeof(libname), "%s%s", specfname, ".so");
+        snprintf(libname, sizeof(libname), "%s%s%s", "./", specfname, ".so"); //Needs the ./ to search in the local folder
         snprintf(command, sizeof(command), "%s%s%s%s", "g++ -O3 -march=native -fPIC -shared ", specfname, \
                 " -o ", libname);
         print(DEBUG, "Compiling: %s ", command );
@@ -161,7 +165,7 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         }
 
 
-        // Link new object file to current executable        
+        // Link new object file to current executable
         typedef void (*pf)(va_list);
         const char* err;
 
@@ -172,15 +176,16 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         }
         pf function = (pf) dlsym(lib,"loop");
         if(!function){
-            print(ERROR, "Failed to open locate function: %s \n", dlerror());
+            print(ERROR, "Failed to locate function: %s \n", dlerror());
             exit(2);
         }
 
         print(DEBUG, "Compilation and linking successful!", command );
 
         function(args);
-        va_end(args);
 
+        // Free memory
+        va_end(args);
         dlclose(lib);
 
         return false;

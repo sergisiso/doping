@@ -6,4 +6,5 @@
 **/*.jake.cpp
 **/__pycache__
 sourceme
+tags
 **/**/__pycache__/

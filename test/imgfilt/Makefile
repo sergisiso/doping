@@ -28,4 +28,4 @@ runmopt:
 	./if.tgversion.exe
 
 clean:
-	rm  -f *.exe *.loop.cc
+	rm  -f *.exe *.loop.cc imgfilt-cpp.jake.*

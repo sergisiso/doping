@@ -20,7 +20,7 @@ runjake:
 	./mm.jakeversion.exe 1000 | tee jakeversion.output
 
 compare:
-	diff cversion.output jakeversion.output
+	diff <(grep "Sum of" cversion.output) <(grep "Sum of" jakeversion.output)
 
 mopt: mm_manual_opt.cc
 	$(CC) $(CFLAGS) mm_manual_opt.cc -o mm.manualopt.exe
