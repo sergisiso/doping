@@ -92,11 +92,14 @@ class ASTNode(clang.cindex.Cursor):
                 + " " + tokens + "\n" + "\n".join(childrenstr)
 
 
+    def type_is_scalar(self):
+        return (self.type.kind.value >= 4) and (self.type.kind.value <= 23)
+
     def _find(self, searchtype, outermostonly = False):
         if (self.kind == searchtype):
             yield self
 
-        # If it needs to contimue searching recurse into the children
+        # If it needs to continue searching recurse into the children
         if (self.kind != searchtype or not outermostonly):    
             for c in self.get_children():
                 for match in c._find(searchtype, outermostonly):
@@ -130,6 +133,7 @@ class ASTNode(clang.cindex.Cursor):
 
     def find_all_accesses(self):
         return self._find(clang.cindex.CursorKind.UNEXPOSED_EXPR)
+
     def get_children(self):
         return [instantiate_node(x) for x in super(ASTNode,self).get_children()]
 
@@ -305,16 +309,29 @@ class FORNode (ASTNode) :
         written_scalars = []
         runtime_constants = []
 
+        # Find variable declarations inside the loop
         for decl in self.find_declarations():
             local_vars.append(decl.get_children()[0])
 
-        arrays = map(lambda x: x.get_children()[0],self.find_array_accesses())
+        #arrays = map(lambda x: x.get_children()[0],self.find_array_accesses())
+        for a_access in self.find_array_accesses():
+            x = a_access
+            while x.get_children()[0].displayname == "": # recurse down in case it is a multidimensional array
+                x = x.get_children()[0]
+            if x.get_children()[0].displayname not in map(lambda i: i.displayname, arrays): # avoid duplicates
+                arrays.append(x.get_children()[0])
+
+
+
+
         arrays_dp = map(lambda x : x.displayname, arrays)
         decl_dp = map(lambda x : x.displayname, local_vars)
 
         for assignment in self.find_assignments():
             var = assignment.get_children()[0]
-            if var not in local_vars: # FIXME: first element
+            if (var not in local_vars) and \
+               (var.displayname not in map(lambda i: i.displayname, written_scalars)) :
+                # avoid duplicated (FIXME: but what happend with multiple declarations with same name?)
                 if var.kind != clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR:
                     written_scalars.append(var)
 
@@ -324,10 +341,12 @@ class FORNode (ASTNode) :
         for access in self.find_all_accesses():
             if (access.displayname not in ru_dp) and \
                (access.displayname not in decl_dp) and \
+               (access.displayname not in write_dp) and \
                (access.displayname not in arrays_dp) and \
                (access.displayname != ''):
-                    ru_dp.append(access.displayname)
-                    runtime_constants.append(access)
+                   if access.type_is_scalar() and (access.get_children()[0].kind != clang.cindex.CursorKind.CALL_EXPR) :
+                        ru_dp.append(access.displayname)
+                        runtime_constants.append(access)
 
 
         return local_vars, arrays, written_scalars, runtime_constants

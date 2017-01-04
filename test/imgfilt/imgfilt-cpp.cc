@@ -3,8 +3,8 @@
 #include <stdlib.h>
 #include <iostream>
 
-#define IMG_SIZE	256*4
-#define MSK_SIZE	8
+#define IMG_SIZE	512*4
+#define MSK_SIZE	16
 #define NUM_MASKS	10
 #define NUM_IMAGES	1
 

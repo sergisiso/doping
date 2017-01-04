@@ -26,6 +26,7 @@ class InjectJake (CodeTransformation):
             # Classify the loop variables
             local_vars, arrays, written_scalars, runtime_constants = node.variable_analysis()
             self._print_analysis(local_vars, arrays, written_scalars, runtime_constants)
+            if len(runtime_constants) < 1: continue
             
             # Create new file for the specific loop
             fname, fext = os.path.splitext(self.filename)
@@ -46,10 +47,11 @@ class InjectJake (CodeTransformation):
             # Generate new version of the loop
             file.insert("//  --------- New version: ----------")
             timevar = "JAKEEnd"+str(LoopID)
+            rtvar = "JAKERuntimeVal_"+str(LoopID)
             file.insert("time_t "+timevar+";")
-            file.insert("char JAKERuntimeVal["+str(len(runtime_constants))+"][20];")
+            file.insert("char "+rtvar+"["+str(len(runtime_constants))+"][20];")
             for idx, var in enumerate(runtime_constants):
-                file.insert("sprintf(JAKERuntimeVal["+str(idx)+"], \"%d\" ,"+var.displayname+");")
+                file.insert("sprintf("+rtvar+"["+str(idx)+"], \"%d\" ,"+var.displayname+");")
             file.insert(node.get_init_string()+";")
             file.insert("while ( JakeRuntime( \""+ newfname +"\"")
             file.insertpl(", &" + timevar)
@@ -59,7 +61,7 @@ class InjectJake (CodeTransformation):
             # Add tuples of name and values of the runtime constant variables
             # all in string format
             for idx, var in enumerate(runtime_constants):
-                file.insertpl(", \"" + var.displayname + "\"" + ", JAKERuntimeVal[" + str(idx) + "]")
+                file.insertpl(", \"" + var.displayname + "\"" + ", "+rtvar+"[" + str(idx) + "]")
 
             file.insertpl(", " + node.cond_variable())
             for var in arrays:
@@ -95,6 +97,11 @@ class InjectJake (CodeTransformation):
                 jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
                 #jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
                         + atype + ");")
+
+            #Declare additional vars
+            for v in written_scalars:
+                vtype = v.type.spelling
+                jakefile.insert(vtype + " " + v.displayname + ";")
 
             # Write delayed evaluated variables
             for v in runtime_constants:

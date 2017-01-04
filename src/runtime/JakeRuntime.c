@@ -6,6 +6,9 @@
 #define MSG     3
 #define DEBUG   4
 
+typedef void (*pf)(va_list);
+pf function;
+
 void print(int priority, const char * message, ...){
     va_list args;
     va_start(args, message);
@@ -106,7 +109,7 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
     sprintf(newfname + strlen(newfname), "%s", lastdot);
 
     print(DEBUG, "New function filename: %s", newfname);
-    print(DEBUG, "Content:\n%s\n", fcontent);
+    //print(DEBUG, "Content:\n%s\n", fcontent);
 
     // Write specialized file
     FILE * fo = (FILE*) fopen(newfname,"w");
@@ -121,15 +124,79 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
     return newfname;
 }
 
+bool compile_spezialized_fn(char * specfname, char * libname){
+    
+    char command[1024]; // Implement better solution (with realloc?)
+    snprintf(command, sizeof(command), "%s%s%s%s", \
+            "g++ -O3 -march=native -fPIC -shared ", specfname, \
+            " -o ", libname);
+    print(DEBUG, "Compiling: %s ", command );
+    
+    FILE *compilation = popen(command, "r");
+    if (compilation == NULL){
+        print(ERROR, "Compilation filed ", command );
+        exit(0);
+    }else{
+        char line[1024];
+        while (fgets(line, sizeof(line), compilation) != NULL) {
+            print(DEBUG, "%s", line);
+        }
+        pclose(compilation);
+    }
+
+
+    // Link new object file to current executable
+    const char* err;
+
+    void * lib = dlopen(libname, RTLD_NOW);
+    if (!lib) {
+        print(ERROR, "Failed to open library .so: %s \n", dlerror());
+        exit(3);
+    }
+    function = (pf) dlsym(lib,"loop");
+    if(!function){
+        print(ERROR, "Failed to locate function: %s \n", dlerror());
+        exit(2);
+    }
+
+    print(DEBUG, "Compilation and linking successful!", command );
+}
+
+bool execute_fn(){
+
+}
+
+
 
 bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
 
+    char libname[1024];
+
+    // Specialize template function with delayed evaluation parameters
+    va_list args;
+    va_start(args, num_runtime_ct);
+    char * specfname = specialize_function(fname, num_runtime_ct, args);
+    // do not end va_args, it continues latter.
+
+
+    // Prepare recompilation command and execute
+    snprintf(libname, sizeof(libname), "%s%s%s", "./", specfname, ".so"); //Needs the ./ to search in the local folder
+     
+
     // Decide if it is worth to continue with the original loop or
     // recompile a new version
     float progress = float(*iter)/(iterspace - start_iter);
     float threshold = 0.5;
+   
+    
+    if( access( libname, F_OK ) != -1 && function != NULL) { 
+        print(MSG, "Specialized loop %s already compiled and linked. Executing ...", libname);
+        function(args);
+        va_end(args);
+        return false;
+    }
 
     if ( ( *iter > start_iter ) && ( progress < threshold) ){
         // Recompile loop and continue execution
@@ -137,61 +204,19 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         print(MSG,"Loop at iteration: %u (%f \%) (Remaining time: %f s)", *iter, 100 * progress, 2/progress );
         print(MSG,"%f < %f -> Decided to recompile", progress, threshold );
 
-        // Specialize template function with delayed evaluation parameters
-        va_list args;
-        va_start(args, num_runtime_ct);
-        char * specfname = specialize_function(fname, num_runtime_ct, args);
-        // do not end va_args, it continues latter.
-
-
-        // Prepare recompilation command and execute
-        char command[1024]; // Implement better solution (with realloc?)
-        char libname[1024];
-
-        snprintf(libname, sizeof(libname), "%s%s%s", "./", specfname, ".so"); //Needs the ./ to search in the local folder
-        snprintf(command, sizeof(command), "%s%s%s%s", "g++ -O3 -march=native -fPIC -shared ", specfname, \
-                " -o ", libname);
-        print(DEBUG, "Compiling: %s ", command );
-        FILE *compilation = popen(command, "r");
-        if (compilation == NULL){
-            print(ERROR, "Compilation filed ", command );
-            exit(0);
-        }else{
-            char line[1024];
-            while (fgets(line, sizeof(line), compilation) != NULL) {
-                print(DEBUG, "%s", line);
-            }
-            pclose(compilation);
-        }
-
-
-        // Link new object file to current executable
-        typedef void (*pf)(va_list);
-        const char* err;
-
-        void * lib = dlopen(libname, RTLD_NOW);
-        if (!lib) {
-            print(ERROR, "Failed to open library .so: %s \n", dlerror());
-            exit(3);
-        }
-        pf function = (pf) dlsym(lib,"loop");
-        if(!function){
-            print(ERROR, "Failed to locate function: %s \n", dlerror());
-            exit(2);
-        }
-
-        print(DEBUG, "Compilation and linking successful!", command );
+        compile_spezialized_fn(specfname, libname);
 
         function(args);
 
         // Free memory
         va_end(args);
-        dlclose(lib);
+        //dlclose(lib);
 
         return false;
     }else{
         // Continue original loop setting a new stop timer
         *JakeEnd = time(NULL) + 2;
+        va_end(args);
         return continue_loop;
     }
 
