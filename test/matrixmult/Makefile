@@ -1,7 +1,7 @@
 
 CC = g++
 CFLAGS = -O3 -march=native
-
+ITERATIONS=$(shell seq 100 100 10000)
 
 JAKE=${JAKEROOT}/src/jake.py
 
@@ -27,6 +27,21 @@ mopt: mm_manual_opt.cc
 
 runmopt:
 	./mm.manualopt.exe 1000
+
+perfjake:
+	rm -f perfjake.txt
+	$(foreach it,$(ITERATIONS), \
+		echo -n "$(it) " >> perfjake.txt; \
+		(/usr/bin/time -f "%e" ./mm.jakeversion.exe $(it) 2>&1 > /dev/null) >> perfjake.txt ; \
+	)
+
+perfcversion:
+	rm -f perfcversion.txt
+	$(foreach it,$(ITERATIONS), \
+		echo -n "$(it) " >> perfcversion.txt; \
+		(/usr/bin/time -f "%e" ./mm.cversion.exe $(it) 2>&1 > /dev/null) >> perfcversion.txt ; \
+	)
+
 
 clean:
 	rm  -f *.exe *.output mm.jake.*

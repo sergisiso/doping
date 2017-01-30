@@ -28,5 +28,15 @@ mopt: mm_manual_opt.cc
 runmopt:
 	./mm.manualopt.exe 1000
 
+perfjake:
+	rm -f perfjake.txt
+	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./hw.jakeversion.exe $$it) 2>&1 > /dev/null) >> perfjake.txt ;)
+
+perfcversion:
+	rm -f perfcversion.txt
+	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./helloworld.exe $$it) 2>&1 > /dev/null) >> perfcversion.txt ;)
+
+
+
 clean:
 	rm  -f *.exe *.output mm.jake.*
