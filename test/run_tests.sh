@@ -28,7 +28,7 @@ execute () {
     echo "" >> $LOGFILE
 }
 
-for testdir in helloworld matrixmult imgfilt skewedgaussseidel
+for testdir in helloworld multiplematrixmult imgfilt skewedgaussseidel
 #for testdir in helloworld matrixmult
 do
     echo "  [[[     Running $testdir TEST     ]]]"
