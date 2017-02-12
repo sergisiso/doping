@@ -152,11 +152,11 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
     return newfname;
 }
 
-bool compile_spezialized_fn(char * specfname, char * libname){
+bool compile_spezialized_fn(char * specfname, char * libname, const char * flags){
     
     char command[1024]; // Implement better solution (with realloc?)
-    snprintf(command, sizeof(command), "%s%s%s%s", \
-            "g++ -O3 -march=native -fPIC -shared ", specfname, \
+    snprintf(command, sizeof(command), "%s%s%s%s%s", \
+            flags, " -fPIC -shared ", specfname, \
             " -o ", libname);
     print(DEBUG, "Compiling: %s ", command );
     
@@ -192,7 +192,7 @@ bool link_specialized_fn(char * libname){
 }
 
 
-bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
+bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
 
@@ -239,7 +239,7 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
             specfname = specialize_function(fname, num_runtime_ct, args2);
             va_end(args2);
 
-            compile_spezialized_fn(specfname, libname);
+            compile_spezialized_fn(specfname, libname, flags);
             link_specialized_fn(libname);
 
             function(args);

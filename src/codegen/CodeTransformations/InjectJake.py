@@ -6,8 +6,9 @@ from CodeTransformation import CodeTransformation
 
 class InjectJake (CodeTransformation):
 
-    def __init__(self, filename):
+    def __init__(self, filename, flags):
         self.filename = filename
+        self.flags_string = flags
 
     def _apply(self):
         file = self.file
@@ -54,6 +55,7 @@ class InjectJake (CodeTransformation):
                 file.insert("sprintf("+rtvar+"["+str(idx)+"], \"%d\" ,"+var.displayname+");")
             file.insert(node.get_init_string()+";")
             file.insert("while ( JakeRuntime( \""+ newfname +"\"")
+            file.insertpl(", \"" + self.flags_string + "\"")
             file.insertpl(", &" + timevar)
             file.insertpl(", &" + node.cond_variable())
             file.insertpl(", " + node.cond_starting_value() + ", " + node.cond_end_value())
@@ -94,8 +96,8 @@ class InjectJake (CodeTransformation):
             #Get arrays
             for a in arrays:
                 atype = a.type.spelling
-                #jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
-                jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
+                jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
+                #jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
                         + atype + ");")
 
             #Declare additional vars
@@ -108,7 +110,7 @@ class InjectJake (CodeTransformation):
                 jakefile.insert("const " + v.type.spelling + " " + \
                         v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
 
-            jakefile.insert("printf(\"Restart from iteration %d\\n \", lstart);")
+            jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
             jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
                    node.get_incr_string() + node.get_body_string())
 

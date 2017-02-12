@@ -36,6 +36,10 @@ def main():
     new_compiler_command.append(jakeruntimepath)
     new_compiler_command.append("-ldl")
 
+    # Probably will break with more complex examples
+    flags =  ' '.join(filter( lambda x: x[0] == '-' and not x == '-o' ,args.compiler_command)) 
+    flags = str(args.compiler_command[0]) + " " + flags
+
     # Source to Source transformation of C/C++ files
     print("Optimizing C/C++ files:")
     for file in c_files:
@@ -44,7 +48,9 @@ def main():
         newfile = filename + ".jake" + file_extension
         copyfile(file, newfile)
         print("- Generating code for " + file + " ->" + newfile)
-        transformation = InjectJake.InjectJake(newfile)
+
+        print flags
+        transformation = InjectJake.InjectJake(newfile, flags )
         transformation.apply()
         new_compiler_command[index] = newfile
         
