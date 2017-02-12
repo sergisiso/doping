@@ -7,9 +7,10 @@ compile:
 run: compile
 	#MultipleMatrixmult
 	python2 ./src/jake.py -- g++ -O3 -march=native test/multiplematrixmult/mm.cc -o qtest
-	time ./qtest 50 1000
-	g++ -O3 -march=native test/multiplematrixmult/mm.cc -o qtest_original
-	time ./qtest_original 50 1000
+	time ./qtest 50 100000
+
+	#g++ -O3 -march=native test/multiplematrixmult/mm.cc -o qtest_original
+	#time ./qtest_original 50 1000
 	
 	#Imgfilt
 	#python2 ./src/jake.py -- g++ -O3 -march=native test/imgfilt/imgfilt-cpp.cc -o qtest

@@ -58,8 +58,37 @@ int str_replace ( char * string, const char *substr, const char *replacement ){
     return 0;
 }
 
-char * specialize_function(char const * fname, int num_parameters, va_list args){
 
+char * get_specialized_filename(char const * fname, int num_parameters, va_list args){
+
+    size_t str_len = strlen(fname) + 5;
+    char * newfname = (char *)malloc(str_len);
+    const char * lastdot = strrchr(fname,'.');
+    snprintf(newfname, (lastdot - fname) + 1, "%s", fname);
+
+    // For each parameter conncatenate value on the filename
+    for(int i = 0; i < num_parameters; i++){
+        char * new_name = va_arg(args, char *);
+        char * new_value = va_arg(args, char *);
+        //print(DEBUG, " - %s as %s", new_name, new_value);
+
+        // Concatenate new value to the specialized file name
+        str_len += strlen(new_value) + 1; // +1 for the underscore
+        newfname = (char *) realloc(newfname,str_len);
+        sprintf(newfname + strlen(newfname), ".%s", new_value);
+    }
+
+    // Add file extension at the end (realloc not needed because initial
+    // malloc already counts the extension)
+    sprintf(newfname + strlen(newfname), "%s", lastdot);
+
+    //print(DEBUG, "New function filename: %s", newfname);
+    
+    return newfname;
+ 
+}
+
+char * specialize_function(char const * fname, int num_parameters, va_list args){
     // Open input file and get all the contents
     extern int errno;
     FILE * f = (FILE*) fopen(fname,"r");
@@ -83,7 +112,6 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
     snprintf(newfname, (lastdot - fname) + 1, "%s", fname);
     //strncpy(newfname, fname, (lastdot - fname));
 
-    print(DEBUG, "New function filename: %s", newfname);
     // For each parameter conncatenate value on the filename
     for(int i = 0; i < num_parameters; i++){
         char * new_name = va_arg(args, char *);
@@ -101,7 +129,7 @@ char * specialize_function(char const * fname, int num_parameters, va_list args)
         strcpy(placeholder,tag);
         strcat(placeholder,new_name);
         str_replace(fcontent,placeholder,new_value);
-        print(DEBUG, "New function filename: %s", newfname);
+        //print(DEBUG, "New function filename: %s", newfname);
     }
 
     // Add file extension at the end (realloc not needed because initial
@@ -143,7 +171,9 @@ bool compile_spezialized_fn(char * specfname, char * libname){
         }
         pclose(compilation);
     }
+}
 
+bool link_specialized_fn(char * libname){
 
     // Link new object file to current executable
     const char* err;
@@ -159,13 +189,7 @@ bool compile_spezialized_fn(char * specfname, char * libname){
         exit(2);
     }
 
-    print(DEBUG, "Compilation and linking successful!", command );
 }
-
-bool execute_fn(){
-
-}
-
 
 
 bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
@@ -173,16 +197,16 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         unsigned num_runtime_ct, ...){
 
     char libname[1024];
+    char cwd[1024];
 
     // Specialize template function with delayed evaluation parameters
     va_list args;
     va_start(args, num_runtime_ct);
-    char * specfname = specialize_function(fname, num_runtime_ct, args);
+    char * specfname = get_specialized_filename(fname, num_runtime_ct, args);
     // do not end va_args, it continues latter.
 
-
-    // Prepare recompilation command and execute
-    snprintf(libname, sizeof(libname), "%s%s%s", "./", specfname, ".so"); //Needs the ./ to search in the local folder
+    getcwd(cwd, sizeof(cwd));
+    snprintf(libname, sizeof(libname), "%s%s%s%s", cwd,"/", specfname, ".so");
      
 
     // Decide if it is worth to continue with the original loop or
@@ -196,28 +220,41 @@ bool JakeRuntime( const char * fname, time_t * JakeEnd, unsigned * iter, \
         function(args);
         va_end(args);
         return false;
-    }
-
-    if ( ( *iter > start_iter ) && ( progress < threshold) ){
-        // Recompile loop and continue execution
-        print(MSG,"JAKE Runtime Analysis for %s", fname );
-        print(MSG,"Loop at iteration: %u (%f \%) (Remaining time: %f s)", *iter, 100 * progress, 2/progress );
-        print(MSG,"%f < %f -> Decided to recompile", progress, threshold );
-
-        compile_spezialized_fn(specfname, libname);
-
+    }else if( access( libname, F_OK ) != -1) { 
+        print(MSG, "Specialized loop %s already compiled. Linking and executing  ...", libname);
+        link_specialized_fn(libname);
         function(args);
-
-        // Free memory
-        va_end(args);
-        //dlclose(lib);
-
         return false;
     }else{
-        // Continue original loop setting a new stop timer
-        *JakeEnd = time(NULL) + 2;
-        va_end(args);
-        return continue_loop;
+        print(MSG, "Specialized loop %s does not exist. Continue ...", libname);
+
+        if ( ( *iter > start_iter ) && ( progress < threshold) ){
+            // Recompile loop and continue execution
+            print(MSG,"JAKE Runtime Analysis for %s", fname );
+            print(MSG,"Loop at iteration: %u (%f \%) (Remaining time: %f s)", *iter, 100 * progress, 2/progress );
+            print(MSG,"%f < %f -> Decided to recompile", progress, threshold );
+
+            va_list args2;
+            va_start(args2, num_runtime_ct);
+            specfname = specialize_function(fname, num_runtime_ct, args2);
+            va_end(args2);
+
+            compile_spezialized_fn(specfname, libname);
+            link_specialized_fn(libname);
+
+            function(args);
+
+            // Free memory
+            va_end(args);
+            //dlclose(lib);
+
+            return false;
+        }else{
+            // Continue original loop setting a new stop timer
+            *JakeEnd = time(NULL) + 2;
+            va_end(args);
+            return continue_loop;
+        }
     }
 
 }

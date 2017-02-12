@@ -94,8 +94,8 @@ class InjectJake (CodeTransformation):
             #Get arrays
             for a in arrays:
                 atype = a.type.spelling
-                jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
-                #jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
+                #jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
+                jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
                         + atype + ");")
 
             #Declare additional vars
