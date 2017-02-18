@@ -6,9 +6,10 @@ from CodeTransformation import CodeTransformation
 
 class InjectJake (CodeTransformation):
 
-    def __init__(self, filename, flags):
+    def __init__(self, filename, flags, verbosity):
         self.filename = filename
         self.flags_string = flags
+        self.verbosity_level = verbosity
 
     def _apply(self):
         file = self.file
@@ -55,6 +56,7 @@ class InjectJake (CodeTransformation):
                 file.insert("sprintf("+rtvar+"["+str(idx)+"], \"%d\" ,"+var.displayname+");")
             file.insert(node.get_init_string()+";")
             file.insert("while ( JakeRuntime( \""+ newfname +"\"")
+            file.insertpl(","+str(self.verbosity_level)+" ")
             file.insertpl(", \"" + self.flags_string + "\"")
             file.insertpl(", &" + timevar)
             file.insertpl(", &" + node.cond_variable())
@@ -110,7 +112,9 @@ class InjectJake (CodeTransformation):
                 jakefile.insert("const " + v.type.spelling + " " + \
                         v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
 
-            jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
+            if(self.verbosity_level==4):
+                jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
+
             jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
                    node.get_incr_string() + node.get_body_string())
 

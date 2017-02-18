@@ -25,6 +25,8 @@ def main():
 
     # Parse input arguments
     parser = argparse.ArgumentParser(description=" ")
+    parser.add_argument('--verbosity', type=int, default='1', choices=[0,1,2,3,4], \
+            help='verbosity level: 0 - non-verbose, 1 - Errors, 2 - Warnings, 3 - Messages, 4 - Debug (default = 1)' )
     parser.add_argument('compiler_command', nargs="+", help='the command used by the compiler')
     args = parser.parse_args()
     
@@ -50,7 +52,7 @@ def main():
         print("- Generating code for " + file + " ->" + newfile)
 
         print flags
-        transformation = InjectJake.InjectJake(newfile, flags )
+        transformation = InjectJake.InjectJake(newfile, flags, args.verbosity)
         transformation.apply()
         new_compiler_command[index] = newfile
         
