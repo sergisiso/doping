@@ -1,13 +1,10 @@
 #include <iostream>
 
 #ifndef MATRIXSIZE
-#define MATRIXSIZE 1088
+#define MATRIXSIZE 1088*2
 #endif
 #ifndef NITERS
-#define NITERS 100
-#endif
-#ifndef TILESIZE
-#define TILESIZE 16
+#define NITERS 100*2
 #endif
 #ifndef EPSILON
 #define EPSILON 0.0000001
@@ -56,17 +53,42 @@ void randomInitMatrix2d ( SCALARTYPE m[][MATRIXSIZE] ) {
 	}
 }
 
+SCALARTYPE sumAll1(SCALARTYPE m[MATRIXSIZE]){
+
+    SCALARTYPE sum = 0;
+
+	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
+        sum += m[y];
+	}
+    return sum;
+}
+
+SCALARTYPE sumAll2(SCALARTYPE m[MATRIXSIZE][MATRIXSIZE]){
+
+    SCALARTYPE sum = 0;
+
+	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
+		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
+            sum += m[x][y];
+		}
+	}
+    return sum;
+}
+
+
 SCALARTYPE a1d_ref0[MATRIXSIZE];
 SCALARTYPE a2d_ref0[MATRIXSIZE][MATRIXSIZE];
 
 int main ( int argc, char **argv ) {
 
     randomInitMatrix1d ( a1d_ref0 );
+    std::cout << "gs1d Init: " << sumAll1(a1d_ref0) << "\n";
     gaussseidel1d ( NITERS, a1d_ref0 );
-    std::cout << "gs1d Done! " << "\n";
+    std::cout << "gs1d Done: " << sumAll1(a1d_ref0) << "\n";
 
     randomInitMatrix2d ( a2d_ref0 );
+    std::cout << "gs2d Init: " << sumAll2(a2d_ref0) << "\n";
     gaussseidel2d ( NITERS, a2d_ref0 );
-    std::cout << "gs2d Done! " << "\n";
+    std::cout << "gs2d Done: " << sumAll2(a2d_ref0) << "\n";
   	
 }

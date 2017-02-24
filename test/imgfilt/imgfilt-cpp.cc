@@ -3,9 +3,9 @@
 #include <stdlib.h>
 #include <iostream>
 
-#define IMG_SIZE	512*4
-#define MSK_SIZE	16
-#define NUM_MASKS	10
+#define IMG_SIZE	256*5
+#define MSK_SIZE	128
+#define NUM_MASKS	1
 #define NUM_IMAGES	1
 
 /*
@@ -41,24 +41,35 @@ double utime () {
   return (tv.tv_sec + double (tv.tv_usec) * 1e-6);
 }
 
-/*
- * Name    : main
- * Function: Filter an image using a mask.
- *
- */
+float average (float *m, int size){
+
+    float sum = 0;
+	for ( unsigned x = 0; x < size; ++x ) {
+        for ( unsigned y = 0; y < size; ++y ) {
+			sum = m[x * size + y];
+		}
+	}
+    return sum/(size*size);
+
+}
 
 int main (int argc, char **argv) {
-	float (*im1)[IMG_SIZE] = new float[IMG_SIZE][IMG_SIZE];
-	float (*im2)[IMG_SIZE] = new float[IMG_SIZE][IMG_SIZE];
-	float (*msk)[MSK_SIZE] = new float[MSK_SIZE][MSK_SIZE];
+	float * im1 = new float[IMG_SIZE*IMG_SIZE];
+	float * im2 = new float[IMG_SIZE*IMG_SIZE];
+	float * msk = new float[MSK_SIZE*MSK_SIZE];
 	double t;
+
+    srand(1);
 
 	// Generate a random image
 	srand48 (time (NULL));
-	for (unsigned i = 0; i < IMG_SIZE; i++)
-		for (unsigned j = 0; j < IMG_SIZE; j++)
-			im1[i][j] = static_cast<float>(drand48 ());
-
+	for (unsigned i = 0; i < IMG_SIZE; i++){
+		for (unsigned j = 0; j < IMG_SIZE; j++){
+            float r = (float)rand()/(float)(RAND_MAX) * 255 ;
+			im1[i * IMG_SIZE + j] = r;
+			im2[i * IMG_SIZE + j] = r;
+        }
+    }
 
 	// Generate NUM_MASKS masks and filter im1 with them
 	t = -utime ();
@@ -67,7 +78,7 @@ int main (int argc, char **argv) {
 		// Generate a mask
 		for (unsigned i = 0; i < MSK_SIZE; i++)
 			for (unsigned j = 0; j < MSK_SIZE; j++)
-				msk[i][j] = static_cast<float>(drand48 ());
+				msk[i * MSK_SIZE + j] = (float)rand()/(float)(RAND_MAX) * 2;
 
 		// Filter the image
 		for (unsigned m = 0; m < NUM_IMAGES; m++)
@@ -76,7 +87,8 @@ int main (int argc, char **argv) {
 
 	t += utime ();
 
-	std::cout << "Filtering took " << t << " seconds.\n";
+	std::cout << "Original image average: " << average((float *)im1, IMG_SIZE) << "\n";
+	std::cout << "Filtered image average: " << average((float *)im2, IMG_SIZE) << "\n";
 
 	delete[] im1;
 	delete[] im2;
