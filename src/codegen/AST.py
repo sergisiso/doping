@@ -162,28 +162,21 @@ class DECLNode (ASTNode):
 class FORNode (ASTNode) :
 
     def get_init_string(self):  
-        init = self.get_children()[0]
-        # bug in libclang get_tokens, it returns one more token than needed
-        tokens = [x.spelling for x in init.get_tokens()]
-        tokens = tokens[:tokens.index(";")]
-        return " ".join(tokens)
+        return " ".join(self.get_init_tokens())
 
     def get_init_tokens(self):
         init = self.get_children()[0]
         # bug in libclang get_tokens, it returns one more token than needed
-        tokens = [x.spelling for x in init.get_tokens()]
-        return tokens[:tokens.index(";")]
+        tokens = [x.spelling for x in init.get_tokens() if x.spelling != ";"]
+        return tokens
 
     def get_cond_string(self):
-        cond = self.get_children()[1]
-        tokens = [x.spelling for x in cond.get_tokens()]
-        tokens = tokens[:tokens.index(";")]
-        return " ".join(tokens)
+        return " ".join(self.get_cond_tokens())
 
     def get_cond_tokens(self):
         cond = self.get_children()[1]
-        tokens = [x.spelling for x in cond.get_tokens()]
-        return tokens[:tokens.index(";")]
+        tokens = [x.spelling for x in cond.get_tokens() if x.spelling != ";"]
+        return tokens
 
     def get_incr_string(self):
         incr = self.get_children()[2]

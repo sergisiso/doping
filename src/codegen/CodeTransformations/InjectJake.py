@@ -79,12 +79,12 @@ class InjectJake (CodeTransformation):
             file.insert("// Unmodified loop")
             file.insert("for(; (" + node.get_cond_string())
             file.insertpl(" ) && time(NULL) < "+timevar+";")
-            file.insertpl(node.get_incr_string())
+            file.insertpl(node.get_incr_string() + ")")
             file.increase_indexation()
             file.insert(node.get_body_string())
             file.decrease_indexation()
             file.decrease_indexation()
-            file.insert("} //end while loop")
+            file.insert("}} //end while loop")
             file.insert("")
 
             # Write function definition with arrays and written_scalars
@@ -116,9 +116,9 @@ class InjectJake (CodeTransformation):
                 jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
 
             jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
-                   node.get_incr_string() + node.get_body_string())
+                   node.get_incr_string() +")"+ node.get_body_string())
 
-            jakefile.insert("}")
+            jakefile.insert("}}")
 
             jakefile.save() # Not to confuse with 'file' which is saved by
                             # the superclass
