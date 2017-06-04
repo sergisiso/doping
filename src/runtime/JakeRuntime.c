@@ -8,9 +8,13 @@
 
 typedef void (*pf)(va_list);
 pf function;
-int JAKE_log_priority = 0;
+int JAKE_log_priority = 5;
 
 void print(int priority, const char * message, ...){
+    if (JAKE_log_priority == 0) {
+	const char* s = getenv("JAKE_RUNTIME_VERBOSE");
+	JAKE_log_priority == atoi(s);
+    }
     if (priority < JAKE_log_priority) {
         va_list args;
         va_start(args, message);
@@ -194,11 +198,10 @@ bool link_specialized_fn(char * libname){
 }
 
 
-bool JakeRuntime( const char * fname, int verbosity, const char * flags, time_t * JakeEnd, unsigned * iter, \
+bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
 
-    JAKE_log_priority = verbosity;
     char libname[1024];
     char cwd[1024];
 

@@ -56,7 +56,6 @@ class InjectJake (CodeTransformation):
                 file.insert("sprintf("+rtvar+"["+str(idx)+"], \"%d\" ,"+var.displayname+");")
             file.insert(node.get_init_string()+";")
             file.insert("while ( JakeRuntime( \""+ newfname +"\"")
-            file.insertpl(","+str(self.verbosity_level)+" ")
             file.insertpl(", \"" + self.flags_string + "\"")
             file.insertpl(", &" + timevar)
             file.insertpl(", &" + node.cond_variable())
