@@ -1,6 +1,6 @@
 
-CC = g++
-CFLAGS = -O3 -march=native
+CC = icc
+CFLAGS = -O2
 
 JAKE=${JAKEROOT}/src/jake.py
 
@@ -13,13 +13,13 @@ cversion: imgfilt-cpp.cc
 	$(CC) $(CFLAGS) imgfilt-cpp.cc -o if.cversion.exe
 
 runcversion:
-	./if.cversion.exe | tee cversion.output
+	./if.cversion.exe 50 | tee cversion.output
 
 jake: imgfilt-cpp.cc
 	$(JAKE) -- $(CC) $(CFLAGS) imgfilt-cpp.cc -o if.jakeversion.exe
 
 runjake:
-	./if.jakeversion.exe | tee jakeversion.output
+	./if.jakeversion.exe 50 | tee jakeversion.output
 
 mopt: imgfilt-tg.cc
 	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe

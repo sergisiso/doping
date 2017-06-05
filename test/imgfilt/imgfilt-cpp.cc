@@ -2,12 +2,6 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <iostream>
-
-#define IMG_SIZE	256*5
-#define MSK_SIZE	128
-#define NUM_MASKS	1
-#define NUM_IMAGES	1
-
 /*
  * Name    : filter
  * Function: Apply a mask to an image. We only filter the central portion
@@ -33,14 +27,6 @@ void filter (float *mask, unsigned n, unsigned m, const float *input, float *out
 	}
 }
 
-double utime () {
-  struct timeval tv;
-
-  gettimeofday (&tv, NULL);
-
-  return (tv.tv_sec + double (tv.tv_usec) * 1e-6);
-}
-
 float average (float *m, int size){
 
     float sum = 0;
@@ -54,43 +40,61 @@ float average (float *m, int size){
 }
 
 int main (int argc, char **argv) {
-	float * im1 = new float[IMG_SIZE*IMG_SIZE];
-	float * im2 = new float[IMG_SIZE*IMG_SIZE];
-	float * msk = new float[MSK_SIZE*MSK_SIZE];
-	double t;
+
+    int img_size;
+    int msk_size;
+    int num_masks;
+    int num_images;
+
+    // Get array size from first argument
+    if (argc == 2){
+        num_masks = atoi(argv[1]);
+        num_images = 1;
+        img_size = 1024;
+        msk_size = 8;
+    }else if(argc == 5){
+    	num_masks = atoi(argv[1]);
+    	num_images = atoi(argv[2]);
+    	img_size = atoi(argv[3]);
+    	msk_size = atoi(argv[4]);
+    }else{
+        std::cerr << "Invalid number of parameters" << std::endl;
+        return -1;
+    }
+
+    float * im1 = new float[img_size*img_size];
+    float * im2 = new float[img_size*img_size];
+    float * msk = new float[msk_size*msk_size];
+    double t;
 
     srand(1);
 
-	// Generate a random image
-	srand48 (time (NULL));
-	for (unsigned i = 0; i < IMG_SIZE; i++){
-		for (unsigned j = 0; j < IMG_SIZE; j++){
+    // Generate a random image
+    srand48 (time (NULL));
+    for (unsigned i = 0; i < img_size; i++){
+        for (unsigned j = 0; j < img_size; j++){
             float r = (float)rand()/(float)(RAND_MAX) * 255 ;
-			im1[i * IMG_SIZE + j] = r;
-			im2[i * IMG_SIZE + j] = r;
+			im1[i * img_size + j] = r;
+			im2[i * img_size + j] = r;
         }
     }
 
-	// Generate NUM_MASKS masks and filter im1 with them
-	t = -utime ();
+    // Generate NUM_MASKS masks and filter im1 with them
+    for (unsigned n = 0; n < num_masks; n++) {
+	// Generate a mask
+	for (unsigned i = 0; i < msk_size; i++)
+	    for (unsigned j = 0; j < msk_size; j++)
+		msk[i * msk_size + j] = (float)rand()/(float)(RAND_MAX) * 2;
 
-	for (unsigned n = 0; n < NUM_MASKS; n++) {
-		// Generate a mask
-		for (unsigned i = 0; i < MSK_SIZE; i++)
-			for (unsigned j = 0; j < MSK_SIZE; j++)
-				msk[i * MSK_SIZE + j] = (float)rand()/(float)(RAND_MAX) * 2;
-
-		// Filter the image
-		for (unsigned m = 0; m < NUM_IMAGES; m++)
-			filter ((float *) msk, MSK_SIZE, MSK_SIZE, (float *) im1, (float *) im2, IMG_SIZE, IMG_SIZE);
+	// Filter the image
+	for (unsigned m = 0; m < num_images; m++)
+	    filter ((float *) msk, msk_size, msk_size, (float *) im1, (float *) im2, img_size, img_size);
     }
 
-	t += utime ();
+    std::cout << "Original image average: " << average((float *)im1, img_size) << "\n";
+    std::cout << "Filtered image average: " << average((float *)im2, img_size) << "\n";
 
-	std::cout << "Original image average: " << average((float *)im1, IMG_SIZE) << "\n";
-	std::cout << "Filtered image average: " << average((float *)im2, IMG_SIZE) << "\n";
-
-	delete[] im1;
-	delete[] im2;
-	delete[] msk;
+    delete[] im1;
+    delete[] im2;
+    delete[] msk;
 }
