@@ -111,8 +111,8 @@ class InjectJake (CodeTransformation):
                 jakefile.insert("const " + v.type.spelling + " " + \
                         v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
 
-            if(self.verbosity_level==4):
-                jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
+            #if(self.verbosity_level==4):
+            jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
 
             jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
                    node.get_incr_string() +")"+ node.get_body_string())
