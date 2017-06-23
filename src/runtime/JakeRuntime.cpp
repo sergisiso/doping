@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <chrono>
 
 #include <cstdarg>
 #include <cerrno>
@@ -153,13 +154,13 @@ bool link_specialized_fn(const string& libname){
         exit(2);
     }
 	LOG(DEBUG) << "Loop symbol resolved";
+    //Note that I am not calling dlclose() anywhere. Fix?
 }
 
 
 bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
-
 
     // Get working dir
     char cwd[1024];  getcwd(cwd, sizeof(cwd));
@@ -191,6 +192,9 @@ bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsi
     }else{
 
         if ( ( *iter > start_iter ) && ( progress < threshold) ){
+            chrono::time_point<chrono::system_clock> tstart, tend;
+
+            tstart = chrono::system_clock::now();
             // Recompile loop and continue execution
             LOG(INFO) << "Runtime Analysis of: " << fname ;
             LOG(INFO) << "Loop at iteration: " << *iter << " (" << 100*progress \
@@ -200,18 +204,20 @@ bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsi
             va_list args;
             va_start(args, num_runtime_ct);
             string specfname = specialize_function(fname, num_runtime_ct, args);
-            LOG(DEBUG) << "HERE";
 
             string libname = compile_spezialized_fn(specfname, flags);
             link_specialized_fn(libname);
+
+            tend = chrono::system_clock::now();
+            chrono::duration<double> elapsed_seconds = tend-tstart;
+            LOG(INFO) << "Jake Runtime elapsed time (inc. recompile and relink): " \
+                << elapsed_seconds.count() << " s"; 
 
             LOG(DEBUG) << "Running optimized function...";
             function(args);
 
             // Free memory
             va_end(args);
-            //dlclose(lib);
-
             return false;
         }else{
             // Continue original loop setting a new stop timer
