@@ -24,7 +24,6 @@ string specialize_function(const string& fname, int num_parameters, ...);
 bool link_specialized_fn(const string& libname);
 typedef void (*pf)(va_list);
 pf function;
-int JAKE_log_priority = 5;
 
 /*
 Converts file name to a specialized filename using runtime values one e.g.:
@@ -169,9 +168,6 @@ bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsi
     float progress = float(*iter)/(iterspace - start_iter);
     float threshold = 0.5;
    
-    LOG(INFO) << "Loop at iteration: " << *iter << " (" << 100*progress \
-        << " %) (Est. Remaining time: " << 2/progress << " s)";
-    
     //Check if the optimized function is already compiled and linked
     if(false) {
     //if(function != NULL) { // need to make this loop dependant

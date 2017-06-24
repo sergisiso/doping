@@ -18,6 +18,7 @@ public:
     LOG(typelog type) {
         opened=false;
         msglevel = type;
+        verbose = (std::getenv("JAKEVERBOSE") != NULL);
         operator << ("["+getLabel(type)+"] ");
     }
     ~LOG() {
@@ -28,7 +29,7 @@ public:
     }
     template<class T>
     LOG &operator<<(const T &msg) {
-        if(msglevel >= DEBUG) {
+        if(msglevel >= DEBUG && verbose) {
             cout << msg;
             opened = true;
         }
@@ -36,6 +37,7 @@ public:
     }
 private:
     bool opened;
+    bool verbose;
     typelog msglevel;
     inline string getLabel(typelog type) {
         string label;
