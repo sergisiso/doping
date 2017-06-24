@@ -114,7 +114,7 @@ string specialize_function(const string& fname, int num_parameters, va_list args
 string exec(const string& cmd) {
     char buffer[128];
     std::string result = "";
-    FILE* pipe = popen(cmd.c_str(), "r");
+    FILE* pipe = popen( (cmd + " 2>&1").c_str(), "r");
     if (!pipe){
 		LOG(ERROR) << "popen() failed";
 		exit(-1);

@@ -40,12 +40,22 @@ class AST:
         self.filename = filename
         self.root.__class__ = ASTNode
 
+    def is_from_file(self, node):
+        return node.location.file.name.decode("utf-8") == self.filename
+
     def find_file_loops(self, outermostonly=False):
-        def is_from_file(node):
-            return node.location.file.name.decode("utf-8") == self.filename
+        return filter(self.is_from_file, self.root.find_loops(outermostonly))
 
-        return filter(is_from_file, self.root.find_loops(outermostonly))
+    def find_file_includes(self):
+        #return filter(self.is_from_file, self.root.find_includes())
 
+        #Clang implementation above does not work! FIX! Meanwhile ugly implementation below.
+        includes = []
+        with open(self.filename,'r') as f:
+            for line in f:
+                if line.startswith("#include"): includes.append(line)
+
+        return includes
 
     def get_root(self):
         return self.root
@@ -86,8 +96,8 @@ class ASTNode(clang.cindex.Cursor):
         # Displayname has more information in some situations
         text = self.spelling or self.displayname
         kind = str(self.kind)[str(self.kind).index('.')+1:]
-        tokens = ""
-        #tokens = " ".join([x.spelling for x in self.get_tokens()])
+        #tokens = ""
+        tokens = " ".join([x.spelling for x in self.get_tokens()])
         return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") \
                 + " " + tokens + "\n" + "\n".join(childrenstr)
 
@@ -108,6 +118,9 @@ class ASTNode(clang.cindex.Cursor):
 
     def find_loops(self, outermostonly = True,):
         return self._find(clang.cindex.CursorKind.FOR_STMT, outermostonly)
+
+    def find_includes(self):
+        return self._find(clang.cindex.CursorKind.INCLUSION_DIRECTIVE, True)
 
     def find_declarations(self):
         return self._find(clang.cindex.CursorKind.DECL_STMT)

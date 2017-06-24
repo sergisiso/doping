@@ -87,6 +87,8 @@ class InjectJake (CodeTransformation):
             file.insert("")
 
             # Write function definition with arrays and written_scalars
+            for include in self.ast.find_file_includes():
+                jakefile.insert(include)
             jakefile.insert("#include <cstdarg>")
             jakefile.insert("#include <stdio.h>")
             jakefile.insert("extern \"C\" void loop(va_list args){")
@@ -112,7 +114,7 @@ class InjectJake (CodeTransformation):
                         v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
 
             #if(self.verbosity_level==4):
-            jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
+            #jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
 
             jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
                    node.get_incr_string() +")"+ node.get_body_string())
