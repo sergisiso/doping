@@ -89,7 +89,7 @@ class ASTNode(clang.cindex.Cursor):
 
     def node_to_str(self, ptokens=False, recursion_level = 0):
         childrenstr = []
-        if recursion_level < 5:
+        if recursion_level < 10:
             for child in self.get_children() :
                 childrenstr.append(child.node_to_str(ptokens,recursion_level+1))
 
@@ -105,15 +105,23 @@ class ASTNode(clang.cindex.Cursor):
     def type_is_scalar(self):
         return (self.type.kind.value >= 4) and (self.type.kind.value <= 23)
 
+    def type_is_pointer(self):
+        return (self.type.kind == clang.cindex.TypeKind.POINTER)
+
     def _find(self, searchtype, outermostonly = False):
         if (self.kind == searchtype):
             yield self
 
         # If it needs to continue searching recurse into the children
         if (self.kind != searchtype or not outermostonly):    
-            for c in self.get_children():
-                for match in c._find(searchtype, outermostonly):
-                    yield match
+            if (self.kind == clang.cindex.CursorKind.CALL_EXPR):
+                for c in self.get_children()[1:]: #Remove name node of function calls
+                    for match in c._find(searchtype, outermostonly):
+                        yield match
+            else:
+                for c in self.get_children():
+                    for match in c._find(searchtype, outermostonly):
+                        yield match
 
 
     def find_loops(self, outermostonly = True,):
@@ -143,6 +151,9 @@ class ASTNode(clang.cindex.Cursor):
 
     def find_array_accesses(self):
         return self._find(clang.cindex.CursorKind.ARRAY_SUBSCRIPT_EXPR)
+
+    def find_pointer_references(self):
+        pass
 
     def find_all_accesses(self):
         return self._find(clang.cindex.CursorKind.UNEXPOSED_EXPR)
@@ -315,6 +326,7 @@ class FORNode (ASTNode) :
         written_scalars = []
         runtime_constants = []
 
+        #print self
         # Find variable declarations inside the loop
         for decl in self.find_declarations():
             local_vars.append(decl.get_children()[0])
@@ -326,7 +338,6 @@ class FORNode (ASTNode) :
                 x = x.get_children()[0]
             if x.get_children()[0].displayname not in map(lambda i: i.displayname, arrays): # avoid duplicates
                 arrays.append(x.get_children()[0])
-
 
 
 
@@ -344,15 +355,19 @@ class FORNode (ASTNode) :
         write_dp = map(lambda x : x.displayname, written_scalars)
         runtime_constants = []
         ru_dp = []
+        print self
         for access in self.find_all_accesses():
             if (access.displayname not in ru_dp) and \
                (access.displayname not in decl_dp) and \
                (access.displayname not in write_dp) and \
                (access.displayname not in arrays_dp) and \
                (access.displayname != ''):
-                   if access.type_is_scalar() and (access.get_children()[0].kind != clang.cindex.CursorKind.CALL_EXPR) :
+                    if access.type_is_scalar() and (access.get_children()[0].kind != clang.cindex.CursorKind.CALL_EXPR) :
                         ru_dp.append(access.displayname)
                         runtime_constants.append(access)
+                    if access.type_is_pointer() and (access.get_children()[0].kind != clang.cindex.CursorKind.CALL_EXPR):
+                        arrays.append(access)
+                        arrays_dp.append(access.displayname)
 
 
         return local_vars, arrays, written_scalars, runtime_constants

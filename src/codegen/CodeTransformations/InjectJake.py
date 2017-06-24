@@ -26,8 +26,8 @@ class InjectJake (CodeTransformation):
             LoopID = LoopID + 1
             
             # Classify the loop variables
-            local_vars, arrays, written_scalars, runtime_constants = node.variable_analysis()
-            self._print_analysis(local_vars, arrays, written_scalars, runtime_constants)
+            local_vars, pointers, written_scalars, runtime_constants = node.variable_analysis()
+            self._print_analysis(local_vars, pointers, written_scalars, runtime_constants)
             if len(runtime_constants) < 1: continue
             
             # Create new file for the specific loop
@@ -67,7 +67,7 @@ class InjectJake (CodeTransformation):
                 file.insertpl(", \"" + var.displayname + "\"" + ", "+rtvar+"[" + str(idx) + "]")
 
             file.insertpl(", " + node.cond_variable())
-            for var in arrays:
+            for var in pointers:
                 file.insertpl(", " + var.displayname)
 
             file.insertpl(")){" )
@@ -86,7 +86,7 @@ class InjectJake (CodeTransformation):
             file.insert("}} //end while loop")
             file.insert("")
 
-            # Write function definition with arrays and written_scalars
+            # Write function definition with pointers and written_scalars
             for include in self.ast.find_file_includes():
                 jakefile.insert(include)
             jakefile.insert("#include <cstdarg>")
@@ -96,8 +96,8 @@ class InjectJake (CodeTransformation):
             #Get loop start condition
             jakefile.insert("unsigned lstart = va_arg(args, unsigned);")
             
-            #Get arrays
-            for a in arrays:
+            #Get pointers
+            for a in pointers:
                 atype = a.type.spelling
                 jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
                 #jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
@@ -134,12 +134,12 @@ class InjectJake (CodeTransformation):
         file.insert("#include <stdlib.h>")
         file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
 
-    def _print_analysis(self, local_vars, arrays, written_scalars, runtime_constants):
+    def _print_analysis(self, local_vars, pointers, written_scalars, runtime_constants):
         print ("    Local vars: ")
         for var in local_vars:
             print "        "+ var.displayname + " ("+ var.type.spelling + ")"
-        print ("    Arrays: " )
-        for var in arrays:
+        print ("    Arrays/Pointers: " )
+        for var in pointers:
             v = var.get_children()[0]
             print "        "+ v.displayname + " ("+ v.type.spelling + ")"
         print ("    Scalar writes: " )
