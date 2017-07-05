@@ -24,6 +24,9 @@ class InjectJake (CodeTransformation):
         for node in candidates:
             print( "  -> Analysing loop at " + node.str_position())
             LoopID = LoopID + 1
+
+            # Filter loop with local function calls (otherwise will be copied in the optimized object file)
+            # if len(node.function_call_analysis()) > 0: continue
             
             # Classify the loop variables
             local_vars, pointers, written_scalars, runtime_constants = node.variable_analysis()
@@ -91,6 +94,11 @@ class InjectJake (CodeTransformation):
                 jakefile.insert(include)
             jakefile.insert("#include <cstdarg>")
             jakefile.insert("#include <stdio.h>")
+
+            # Write local functions called from the body loop.
+            for f in node.function_call_analysis():
+                jakefile.insert(" ".join([x.spelling for x in f.get_definition().get_tokens()]))
+
             jakefile.insert("extern \"C\" void loop(va_list args){")
             
             #Get loop start condition

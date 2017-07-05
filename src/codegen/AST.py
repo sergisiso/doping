@@ -279,7 +279,7 @@ class FORNode (ASTNode) :
 
         # Wrong implementation
         tokens = self.get_tokens(self.condition)
-        print(len(tokens))
+        #print(len(tokens))
         if len(tokens) != 4:
             raise NotImplementedError("Just implemented for simple conditions")
         if tokens[1] in BINARY_RELATIONAL_OPERATORS_MT:
@@ -313,6 +313,18 @@ class FORNode (ASTNode) :
         # Last token from the first children of the condition contains the operation
         operator = self.condition.get_children()[0].get_tokens()[-1].decode("utf-8")
         return not (operator in BINARY_RELATIONAL_OPERATORS) 
+
+
+    def function_call_analysis(self):
+
+        #Search all function calls in code block
+        fcalls = list(self._find(clang.cindex.CursorKind.CALL_EXPR))
+
+        # Filter functions not defined in the same file (definition not accessible) (is enough?)
+        fcalls =[x for x in fcalls if x.get_definition() is not None ]
+
+        return fcalls
+
 
     def variable_analysis(self):
         """ For each variable inside the loop body differenciate between:
@@ -355,7 +367,6 @@ class FORNode (ASTNode) :
         write_dp = map(lambda x : x.displayname, written_scalars)
         runtime_constants = []
         ru_dp = []
-        print self
         for access in self.find_all_accesses():
             if (access.displayname not in ru_dp) and \
                (access.displayname not in decl_dp) and \
