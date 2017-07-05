@@ -1,5 +1,5 @@
 
-CC = icc
+CC = g++
 CFLAGS = -O2
 
 JAKE=${JAKEROOT}/src/jake.py
