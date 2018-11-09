@@ -8,3 +8,5 @@
 sourceme
 tags
 **/**/__pycache__/
+**/**/.cache
+**/.cache

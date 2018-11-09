@@ -15,7 +15,7 @@ runcversion:
 	./helloworld.exe | tee cversion.output
 
 jake: helloworld.c
-	$(JAKE) -- $(CC) $(CFLAGS) helloworld.c -o hw.jakeversion.exe
+	python2 $(JAKE) -- $(CC) $(CFLAGS) helloworld.c -o hw.jakeversion.exe
 
 runjake:
 	./hw.jakeversion.exe | tee jakeversion.output

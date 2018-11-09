@@ -31,8 +31,12 @@ run: compile
 	#time ./qtest 50
 	#g++ -O2 test/imgfilt/imgfilt-cpp.cc -o qtest_original
 	#time ./qtest_original 50
+
+unittest:
+	cd src && python -m pytest
+
 test: compile
-	cd test && ./run_tests.sh
+	#cd test && ./run_tests.sh
 
 clean:
 	rm -rf bin/* *.log test/*.log qtest qtest_original
