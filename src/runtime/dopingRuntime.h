@@ -6,10 +6,10 @@
 #define EXTERNC
 #endif
 
-EXTERNC bool JakeRuntime(
+EXTERNC bool dopingRuntime(
         const char * fname,
         const char * flags,
-        time_t * JakeEnd,
+        time_t * dopingEnd,
         unsigned * iter,
         unsigned start_iter,
         unsigned iterspace,

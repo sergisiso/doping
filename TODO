@@ -1,7 +1,7 @@
 Fixes
 -----------------------
 [ ] Reuse library if specialized loop has already been compiled in a previous execution.
-[ ] Create specialized fn name with sprintf (Python can generate the statement) to avoid expensive generation during JAKE Runtime
+[ ] Create specialized fn name with sprintf (Python can generate the statement) to avoid expensive generation during doping Runtime
 [ ] Add proper output comparisons into the tests Makefiles
 
 

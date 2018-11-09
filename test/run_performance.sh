@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-JAKEBIN="python $DIR/../jake"
 LOGFILE="$PWD/test.log"
 
 RED='\033[0;31m'
@@ -14,7 +13,7 @@ cpuinfo=$(cat /proc/cpuinfo | grep -m 1 'model name' | sed 's/.*://')
 commitinfo="Git commit: $(git log --format="%h" -n 1)"
 
 echo ""
-echo " ####### Testing Jake - $resultsdir ################"
+echo " ####### Testing doping - $resultsdir ################"
 echo ""
 
 echo "PERFORMANCE TEST executed on $dateformat" > $LOGFILE
@@ -44,12 +43,12 @@ do
     cd $DIR/$testdir
     execute "  * Cleaning possible early results/binaries " "make clean"
     execute "  * Compiling native code: " "make cversion"
-    execute "  * Compiling jake code: " "make jake"
+    execute "  * Compiling doping code: " "make doping"
     execute "  * Running native code: " "make perfcversion"
-    execute "  * Running Jake code: " "make perfjake"
-    #execute "  * Compare native and jake outputs: " "make compare"
+    execute "  * Running doping code: " "make perfdoping"
+    #execute "  * Compare native and doping outputs: " "make compare"
     cp perfcversion.txt $resultsdir/perfcversion_$testdir.txt
-    cp perfjake.txt $resultsdir/perfjake_$testdir.txt
+    cp perfdoping.txt $resultsdir/perfdoping_$testdir.txt
     compilerinfo="$(grep "CC =" Makefile) $(grep "CFLAGS =" Makefile)"
     cp $DIR/plot.sh $resultsdir/${testdir}_plot.sh
     sed  -i "s/#Info/#Info\ncompilerinfo=\"$compilerinfo\"/" $resultsdir/${testdir}_plot.sh

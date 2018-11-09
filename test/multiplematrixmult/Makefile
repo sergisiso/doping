@@ -4,9 +4,9 @@ CFLAGS = -O3 -march=native
 
 ITERATIONS=$(shell seq 1000 1000 50000)
 
-JAKE=${JAKEROOT}/src/jake.py
+DOPING=${DOPING_ROOT}/src/doping.py
 
-all: cversion mopt jake
+all: cversion mopt doping
 
 cversion: mm.cc
 	$(CC) $(CFLAGS) mm.cc -o mm.cversion.exe
@@ -14,14 +14,14 @@ cversion: mm.cc
 runcversion:
 	./mm.cversion.exe 50 10000 | tee cversion.output
 
-jake: mm.cc
-	python $(JAKE) -- $(CC) $(CFLAGS) mm.cc -o mm.jakeversion.exe
+doping: mm.cc
+	python $(DOPING) -- $(CC) $(CFLAGS) mm.cc -o mm.dopingversion.exe
 
-runjake:
-	./mm.jakeversion.exe 50 10000 | tee jakeversion.output
+rundoping:
+	./mm.dopingversion.exe 50 10000 | tee dopingversion.output
 
 compare:
-	diff cversion.output jakeversion.output
+	diff cversion.output dopingversion.output
 
 mopt: mm_manual_opt.cc
 	$(CC) $(CFLAGS) mm_manual_opt.cc -o mm.manualopt.exe
@@ -29,11 +29,11 @@ mopt: mm_manual_opt.cc
 runmopt:
 	./mm.manualopt.exe 1000
 
-perfjake:
-	rm -f perfjake.txt
+perfdoping:
+	rm -f perfdoping.txt
 	$(foreach it,$(ITERATIONS), \
-		echo -n "$(it) " >> perfjake.txt; \
-		(/usr/bin/time -f "%e" ./mm.jakeversion.exe 50 $(it) 2>&1 > /dev/null) >> perfjake.txt ; \
+		echo -n "$(it) " >> perfdoping.txt; \
+		(/usr/bin/time -f "%e" ./mm.dopingversion.exe 50 $(it) 2>&1 > /dev/null) >> perfdoping.txt ; \
 	)
 
 perfcversion:
@@ -46,4 +46,4 @@ perfcversion:
 
 
 clean:
-	rm  -f *.exe *.output mm.jake.* *.txt
+	rm  -f *.exe *.output mm.doping.* *.txt

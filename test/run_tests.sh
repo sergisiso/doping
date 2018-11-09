@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-JAKEBIN="python $DIR/../jake"
 LOGFILE="$PWD/test.log"
 
 RED='\033[0;31m'
@@ -9,7 +8,7 @@ GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
 echo ""
-echo " ####### Testing Jake ################"
+echo " ####### Testing doping ################"
 echo ""
 
 
@@ -37,9 +36,9 @@ do
     execute "  * Cleaning possible early results/binaries " "make clean"
     execute "  * Compiling native code: " "make cversion"
     execute "  * Running native code: " "make runcversion"
-    execute "  * Compiling jake code: " "make jake"
-    execute "  * Running Jake code: " "make runjake"
-    execute "  * Compare native and jake outputs: " "make compare"
+    execute "  * Compiling doping code: " "make doping"
+    execute "  * Running doping code: " "make rundoping"
+    execute "  * Compare native and doping outputs: " "make compare"
     #execute "  * Compiling manually optimized code: " "make mopt"
     #execute "  * Running manually optimized code: " "make runmopt"
     echo ""

@@ -18,7 +18,7 @@ public:
     LOG(typelog type) {
         opened=false;
         msglevel = type;
-        verbose = (std::getenv("JAKEVERBOSE") != NULL);
+        verbose = (std::getenv("DOPING_VERBOSE") != NULL);
         operator << ("["+getLabel(type)+"] ");
     }
     ~LOG() {

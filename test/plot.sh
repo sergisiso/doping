@@ -14,6 +14,6 @@ gnuplot <<- EOF
     set term png nocrop enhanced size 800,400
     set output "$testname.png"
     plot "perfcversion_$testname.txt" using 1:2 with pointlines title "Baseline", \
-         "perfjake_$testname.txt" using 1:2 with pointlines title "Compiled with Jake"
+         "perfdoping_$testname.txt" using 1:2 with pointlines title "Compiled with DOpIng"
 EOF
 

@@ -2,7 +2,7 @@
 CC = g++
 CFLAGS = -O2
 
-JAKE=${JAKEROOT}/src/jake.py
+DOPING=${DOPING_ROOT}/src/doping.py
 
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib
@@ -15,11 +15,11 @@ cversion: imgfilt-cpp.cc
 runcversion:
 	./if.cversion.exe 50 | tee cversion.output
 
-jake: imgfilt-cpp.cc
-	$(JAKE) -- $(CC) $(CFLAGS) imgfilt-cpp.cc -o if.jakeversion.exe
+doping: imgfilt-cpp.cc
+	$(DOPING) -- $(CC) $(CFLAGS) imgfilt-cpp.cc -o if.dopingversion.exe
 
-runjake:
-	./if.jakeversion.exe 50 | tee jakeversion.output
+rundoping:
+	./if.dopingversion.exe 50 | tee dopingversion.output
 
 mopt: imgfilt-tg.cc
 	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe
@@ -27,19 +27,19 @@ mopt: imgfilt-tg.cc
 runmopt:
 	./if.tgversion.exe
 
-perfjake:
-	rm -f perfjake.txt
-	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./if.jakeversion.exe $$it) 2>&1 > /dev/null) >> perfjake.txt ;)
+perfdoping:
+	rm -f perfdoping.txt
+	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./if.dopingversion.exe $$it) 2>&1 > /dev/null) >> perfdoping.txt ;)
 
 perfcversion:
 	rm -f perfcversion.txt
 	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./if.cversion.exe $$it) 2>&1 > /dev/null) >> perfcversion.txt ;)
 
 compare:
-	diff cversion.output jakeversion.output
+	diff cversion.output dopingversion.output
 
 
 
 
 clean:
-	rm  -f *.exe *.loop.cc imgfilt-cpp.jake.* *.txt *.output
+	rm  -f *.exe *.loop.cc imgfilt-cpp.doping.* *.txt *.output

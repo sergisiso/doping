@@ -4,7 +4,7 @@ from codegen.Rewriter import Rewriter
 from codegen.AST import ASTNode
 from CodeTransformation import CodeTransformation
 
-class InjectJake (CodeTransformation):
+class InjectDoping (CodeTransformation):
 
     def __init__(self, filename, flags, verbosity):
         self.filename = filename
@@ -38,12 +38,12 @@ class InjectJake (CodeTransformation):
             newfname = fname + ".loop" + str(LoopID) + fext
             print "    Writing new version of the loop at " + newfname
             if os.path.isfile(newfname): os.remove(newfname)
-            jakefile = Rewriter(newfname)
+            dopingfile = Rewriter(newfname)
 
 
             # Comment old code
             file.goto_original_line(node.get_start())
-            file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
+            file.insert("//  --------- CODE TRANSFORMED BY doping ----------")
             file.insert("//  --------- Old version: ----------")
             for i in range((node.get_end() - node.get_start())+1):
                 self.file.comment()
@@ -51,14 +51,14 @@ class InjectJake (CodeTransformation):
 
             # Generate new version of the loop
             file.insert("//  --------- New version: ----------")
-            timevar = "JAKEEnd"+str(LoopID)
-            rtvar = "JAKERuntimeVal_"+str(LoopID)
+            timevar = "dopingEnd"+str(LoopID)
+            rtvar = "dopingRuntimeVal_"+str(LoopID)
             file.insert("time_t "+timevar+";")
             file.insert("char "+rtvar+"["+str(len(runtime_constants))+"][20];")
             for idx, var in enumerate(runtime_constants):
                 file.insert("sprintf("+rtvar+"["+str(idx)+"], \"%d\" ,"+var.displayname+");")
             file.insert(node.get_init_string()+";")
-            file.insert("while ( JakeRuntime( \""+ newfname +"\"")
+            file.insert("while ( dopingRuntime( \""+ newfname +"\"")
             file.insertpl(", \"" + self.flags_string + "\"")
             file.insertpl(", &" + timevar)
             file.insertpl(", &" + node.cond_variable())
@@ -91,45 +91,45 @@ class InjectJake (CodeTransformation):
 
             # Write function definition with pointers and written_scalars
             for include in self.ast.find_file_includes():
-                jakefile.insert(include)
-            jakefile.insert("#include <cstdarg>")
-            jakefile.insert("#include <stdio.h>")
+                dopingfile.insert(include)
+            dopingfile.insert("#include <cstdarg>")
+            dopingfile.insert("#include <stdio.h>")
 
             # Write local functions called from the body loop.
             for f in node.function_call_analysis():
-                jakefile.insert(" ".join([x.spelling for x in f.get_definition().get_tokens()]))
+                dopingfile.insert(" ".join([x.spelling for x in f.get_definition().get_tokens()]))
 
-            jakefile.insert("extern \"C\" void loop(va_list args){")
+            dopingfile.insert("extern \"C\" void loop(va_list args){")
             
             #Get loop start condition
-            jakefile.insert("unsigned lstart = va_arg(args, unsigned);")
+            dopingfile.insert("unsigned lstart = va_arg(args, unsigned);")
             
             #Get pointers
             for a in pointers:
                 atype = a.type.spelling
-                jakefile.insert(atype + " " + a.displayname + " = va_arg(args, " \
-                #jakefile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
+                dopingfile.insert(atype + " " + a.displayname + " = va_arg(args, " \
+                #dopingfile.insert("double *__restrict__ " + a.displayname + " = va_arg(args, " \
                         + atype + ");")
 
             #Declare additional vars
             for v in written_scalars:
                 vtype = v.type.spelling
-                jakefile.insert(vtype + " " + v.displayname + ";")
+                dopingfile.insert(vtype + " " + v.displayname + ";")
 
             # Write delayed evaluated variables
             for v in runtime_constants:
-                jakefile.insert("const " + v.type.spelling + " " + \
-                        v.displayname+" = JAKEPLACEHOLDER_"+v.displayname+";")
+                dopingfile.insert("const " + v.type.spelling + " " + \
+                        v.displayname+" = dopingPLACEHOLDER_"+v.displayname+";")
 
             #if(self.verbosity_level==4):
-            #jakefile.insert("printf(\"Executing Jake optimized version. Restart from iteration %d\\n \", lstart);")
+            #dopingfile.insert("printf(\"Executing doping optimized version. Restart from iteration %d\\n \", lstart);")
 
-            jakefile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
+            dopingfile.insert("for( unsigned " + node.cond_variable() + " = lstart;" + node.get_cond_string() + ";" + \
                    node.get_incr_string() +")"+ node.get_body_string())
 
-            jakefile.insert("}}")
+            dopingfile.insert("}}")
 
-            jakefile.save() # Not to confuse with 'file' which is saved by
+            dopingfile.save() # Not to confuse with 'file' which is saved by
                             # the superclass
             print("")
 
@@ -140,7 +140,7 @@ class InjectJake (CodeTransformation):
         file.insert("#include <dlfcn.h>")
         file.insert("#include <stdio.h>")
         file.insert("#include <stdlib.h>")
-        file.insert("#include \"../../src/runtime/JakeRuntime.h\"")
+        file.insert("#include \"../../src/runtime/dopingRuntime.h\"")
 
     def _print_analysis(self, local_vars, pointers, written_scalars, runtime_constants):
         print ("    Local vars: ")

@@ -1,4 +1,4 @@
-#include "JakeRuntime.h"
+#include "dopingRuntime.h"
 
 #include <string>
 #include <iostream>
@@ -77,7 +77,7 @@ string specialize_function(const string& fname, int num_parameters, va_list args
         LOG(DEBUG) << " - " << new_name << " as " << new_value;
 
         // Replace placeholders on the file contents for the runtime-constant
-        const string placeholder = "JAKEPLACEHOLDER_" + new_name;
+        const string placeholder = "dopingPLACEHOLDER_" + new_name;
         size_t index;
         /*new_value.find(placeholder);
         if (index != std::string::npos){
@@ -157,7 +157,7 @@ bool link_specialized_fn(const string& libname){
 }
 
 
-bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsigned * iter, \
+bool dopingRuntime( const char * fname, const char * flags, time_t * dopingEnd, unsigned * iter, \
         unsigned start_iter, unsigned iterspace, bool continue_loop, \
         unsigned num_runtime_ct, ...){
 
@@ -206,7 +206,7 @@ bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsi
 
             tend = chrono::system_clock::now();
             chrono::duration<double> elapsed_seconds = tend-tstart;
-            LOG(INFO) << "Jake Runtime elapsed time (inc. recompile and relink): " \
+            LOG(INFO) << "doping Runtime elapsed time (inc. recompile and relink): " \
                 << elapsed_seconds.count() << " s"; 
 
             LOG(DEBUG) << "Running optimized function...";
@@ -217,7 +217,7 @@ bool JakeRuntime( const char * fname, const char * flags, time_t * JakeEnd, unsi
             return false;
         }else{
             // Continue original loop setting a new stop timer
-            *JakeEnd = time(NULL) + 2;
+            *dopingEnd = time(NULL) + 2;
             return continue_loop;
         }
     }

@@ -1,10 +1,10 @@
-Jake
+DOpIng
 ========
 
 Project Description
 -------------------------------
 
-Jake is a transparent and fully automatic framework that does source-to-source transformation and runtime compilation for enhancing the vectorisation of scientific applications. The framework masquerades the overall compilation and execution through a number of aspects.
+DOpIng is a transparent and fully automatic framework that does source-to-source transformation and runtime compilation for enhancing the vectorisation of scientific applications. The framework masquerades the overall compilation and execution through a number of aspects.
 First it performs limited source-to-source, compile-time transformation to inject the code that facilitates dynamic evaluation of loops. During the dynamic evaluation, the framework delays the execution as much as possible to leverage potential runtime-only information, which are otherwise, unavailable to the compilers during static analysis.
 Once the framework believes that enough information has been collected to facilitate the vectorisation, it recompiles the ideal candidates (for the time being, these are loops) and links that to the currently running code. 
 
@@ -17,9 +17,9 @@ Dependencies
 * libclang python bindings (sudo apt install python-clang-3.8)
 
 
-Build Jake (and other Makefile utilities)
+Build DOpIng (and other Makefile utilities)
 --------------------------------
-To build the Jake runtime under 'bin' directory use:
+To build the DOpIng runtime under 'bin' directory use:
 $ make
 
 To quickly run a simple example:
@@ -34,17 +34,17 @@ $ make clean
 
 Usage
 --------------------------------
-First one should specify JAKEROOT environment variable to point the jake folder.
+First one should specify DOPING_ROOT environment variable to point the doping folder.
 
 Simple compiler instruction:
-./jake [jake_options] -- compiler_command
+./dope [doping_options] -- compiler_command
 
 Ex:
-./jake -- icc test/flops/flops_serial.c -o test/flops/flops
+./dope -- icc test/flops/flops_serial.c -o test/flops/flops
 
 
 Makefile build system:
-CC="./jake [jake_options] -- icc" make
+CC="./dope [doping_options] -- icc" make
 Ex:
 
 Contributors

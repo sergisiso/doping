@@ -26,7 +26,7 @@ class GenerateTaskGraph (CodeTransformation):
 
         # Add header and Comment old code
         file.goto_line(node.get_start())
-        file.insert("//  --------- CODE TRANSFORMED BY JAKE ----------")
+        file.insert("//  --------- CODE TRANSFORMED BY DOpIng ----------")
         file.insert("//  --------- Old version: ----------")
         for i in range((node.get_end() - node.get_start())+1):
             self.file.comment()

@@ -6,21 +6,21 @@ import argparse
 from shutil import copyfile
 from subprocess import call
 from codegen.Rewriter import Rewriter
-from codegen.CodeTransformations import InjectJake
+from codegen.CodeTransformations import InjectDoping
 
 ext = ['.cpp', '.c', '.cc']
 
 def main():
 
     # Initial Environment checks
-    if not 'JAKEROOT' in os.environ:
-        print "Error: Environment variable JAKEROOT not defined!"
+    if not 'DOPING_ROOT' in os.environ:
+        print "Error: Environment variable DOPING_ROOT not defined!"
         exit(-1)
     
-    jakeruntimepath = os.path.join(os.environ['JAKEROOT'],"bin/JakeRuntime.o")
+    dopingruntimepath = os.path.join(os.environ['DOPING_ROOT'],"bin/dopingRuntime.o")
 
-    if not os.path.isfile( jakeruntimepath ):
-        print "Error: Can't find Jake Runtime object file. Is Jake properly compiled?"
+    if not os.path.isfile( dopingruntimepath ):
+        print "Error: Can't find doping Runtime object file. Is doping properly compiled?"
         exit(-1)
 
     # Parse input arguments
@@ -33,9 +33,9 @@ def main():
     # Find C/C++ files in the input commnad
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
 
-    # Link dl and JakeRuntime libraries (order is important!)
+    # Link dl and dopingRuntime libraries (order is important!)
     new_compiler_command = args.compiler_command
-    new_compiler_command.append(jakeruntimepath)
+    new_compiler_command.append(dopingruntimepath)
     new_compiler_command.append("-ldl")
 
     # Probably will break with more complex examples
@@ -47,12 +47,12 @@ def main():
     for file in c_files:
         index = args.compiler_command.index(file)
         filename, file_extension = os.path.splitext(file)
-        newfile = filename + ".jake" + file_extension
+        newfile = filename + ".doping" + file_extension
         copyfile(file, newfile)
         print("- Generating code for " + file + " ->" + newfile)
 
         print flags
-        transformation = InjectJake.InjectJake(newfile, flags, args.verbosity)
+        transformation = Injectdoping.Injectdoping(newfile, flags, args.verbosity)
         transformation.apply()
         new_compiler_command[index] = newfile
         

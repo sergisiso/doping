@@ -3,10 +3,10 @@ CC = g++
 CFLAGS = -O3 -march=native
 ITERATIONS=$(shell seq 10 10 100)
 
-JAKE=${JAKEROOT}/src/jake.py
+DOPING=${DOPING_ROOT}/src/doping.py
 
 
-all: cversion jake
+all: cversion doping
 
 cversion: helloworld.c
 	$(CC) $(CFLAGS) helloworld.c -o helloworld.exe
@@ -14,15 +14,15 @@ cversion: helloworld.c
 runcversion:
 	./helloworld.exe | tee cversion.output
 
-jake: helloworld.c
-	python2 $(JAKE) -- $(CC) $(CFLAGS) helloworld.c -o hw.jakeversion.exe
+doping: helloworld.c
+	python2 $(DOPING) -- $(CC) $(CFLAGS) helloworld.c -o hw.dopingversion.exe
 
-runjake:
-	./hw.jakeversion.exe | tee jakeversion.output
+rundoping:
+	./hw.dopingversion.exe | tee dopingversion.output
 
-perfjake:
-	rm -f perfjake.txt
-	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./hw.jakeversion.exe $$it) 2>&1 > /dev/null) >> perfjake.txt ;)
+perfdoping:
+	rm -f perfdoping.txt
+	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./hw.dopingversion.exe $$it) 2>&1 > /dev/null) >> perfdoping.txt ;)
 
 perfcversion:
 	rm -f perfcversion.txt
@@ -31,7 +31,7 @@ perfcversion:
 
 
 compare:
-	diff cversion.output jakeversion.output
+	diff cversion.output dopingversion.output
 
 clean:
 	rm  -f *.exe *.output *.txt
