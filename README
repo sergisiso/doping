@@ -13,8 +13,8 @@ Although it is possible to know more at runtime, a number of challenges do exist
 
 Dependencies
 --------------------------------
-* libclang 3.8 (sudo apt install libclang-3.8-dev)
-* libclang python bindings (sudo apt install python-clang-3.8)
+* llvm libclang 6.0 (add path of libclang.so to LD_LIBRARY_PATH)
+* llvm 6.0 python bindings (add path to clang bindings in PYTHONPATH)
 
 
 Build DOpIng (and other Makefile utilities)
@@ -44,7 +44,7 @@ Ex:
 
 
 Makefile build system:
-CC="./dope [doping_options] -- icc" make
+CC="./doping [doping_options] -- icc" make
 Ex:
 
 Contributors
