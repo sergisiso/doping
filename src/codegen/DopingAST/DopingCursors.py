@@ -1,0 +1,388 @@
+from clang.cindex import *
+
+BINARY_ARITHMETIC_OPERATORS = ("+","-","*","/","%")
+UNARY_ARITHMETIC_OPERATORS = ("++","--")
+BINARY_RELATIONAL_OPERATORS = ("==","!=",">","<",">=","<=")
+BINARY_RELATIONAL_OPERATORS_MT = (">",">=")
+BINARY_RELATIONAL_OPERATORS_LT = ("<","<=")
+BINARY_LOGICAL_OPERATORS = ("&&","||")
+
+class DopingCursorBase(Cursor):
+
+# IMPORTANT: All Cursor movements/traversals/references should
+# call the instantiate_node to remain inside DOpIng functionality
+# at the moment the traversal methods implemented are:
+#  -  get_children()
+#
+# Do RETURN use other Clang Cursor references
+#
+
+    @staticmethod
+    def instantiate_node(node):
+        if(node.kind == CursorKind.FOR_STMT):
+            node.__class__ = ForCursor
+            return node
+        elif(node.kind == CursorKind.DECL_STMT):
+            node.__class__ = DeclarationCursor
+            return node
+        else:
+            node.__class__ = DopingCursorBase
+            return node
+
+    ############################
+    # HELPER FUNCTIONS
+    ############################
+
+# some should be attributes ??
+    def is_for(self):
+        return self.kind == CursorKind.FOR_STMT
+
+    def is_compound(self):
+        return self.kind == CursorKind.COMPOUND_STMT
+
+    def type_is_scalar(self):
+        return (self.type.kind.value >= 4) and (self.type.kind.value <= 23)
+
+    def type_is_pointer(self):
+        return (self.type.kind == TypeKind.POINTER)
+
+    def get_start(self):
+        return self.extent.start.line
+
+    def get_end(self):
+        return self.extent.end.line
+
+    def get_string(self):
+        return " ".join([x.spelling for x in self.get_tokens()])
+
+    def contains_str(self, string):
+        return string in self.get_string()
+
+    def str_position(self):
+        name = self.location.file.name.decode("utf-8") 
+        line = str(self.location.line)
+        col  = str(self.location.column) 
+        return "["+ name + ", line:" + line + ", col:" + col+ "]"
+
+    def node_to_str(self, ptokens=False, recursion_level = 0):
+        childrenstr = []
+        if recursion_level < 10:
+            for child in self.get_children() :
+                childrenstr.append(child.node_to_str(ptokens,recursion_level+1))
+
+        # Displayname has more information in some situations
+        text = self.spelling or self.displayname
+        kind = str(self.kind)[str(self.kind).index('.')+1:]
+        #tokens = ""
+        tokens = " ".join([x.spelling for x in self.get_tokens()])
+        return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") \
+                + " " + tokens + "\n" + "\n".join(childrenstr)
+
+
+    #######################################   
+    # find_* Tree search functions: 
+    #######################################   
+
+    def find_loops(self, outermostonly = True,):
+        return self._find(CursorKind.FOR_STMT, outermostonly)
+
+    def find_includes(self):
+        return self._find(CursorKind.INCLUSION_DIRECTIVE, True)
+
+    def find_declarations(self):
+        return self._find(CursorKind.DECL_STMT)
+        
+
+    def find_assignments(self, fromfile = False):
+        assignments = []
+        caos = self._find(CursorKind.COMPOUND_ASSIGNMENT_OPERATOR)
+        assignments.extend(caos)
+
+        # Binary operations which contain a '='
+        bops = self._find(CursorKind.BINARY_OPERATOR)
+        assignments.extend(filter(lambda x: x.contains_str("="), list(bops)))
+
+        # Declarations which contain a '='
+        decls = self._find(CursorKind.DECL_STMT)
+        assignments.extend(filter(lambda x: x.contains_str("="), list(decls)))
+
+        return assignments
+
+    def find_array_accesses(self):
+        return self._find(CursorKind.ARRAY_SUBSCRIPT_EXPR)
+
+    def find_pointer_references(self):
+        pass
+
+    def find_all_accesses(self):
+        return self._find(CursorKind.UNEXPOSED_EXPR)
+
+    def _find(self, searchtype, outermostonly = False):
+        if (self.kind == searchtype):
+            yield self
+
+        # If it needs to continue searching recurse into the children
+        if (self.kind != searchtype or not outermostonly):    
+            if (self.kind == CursorKind.CALL_EXPR):
+                for c in self.get_children()[1:]: #Remove name node of function calls
+                    for match in c._find(searchtype, outermostonly):
+                        yield match
+            else:
+                for c in self.get_children():
+                    for match in c._find(searchtype, outermostonly):
+                        yield match
+
+
+    def get_children(self):
+        return [instantiate_node(x) for x in super(ASTNode,self).get_children()]
+
+    def __str__(self):
+        return "AST:\n" + self.node_to_str(self)
+
+
+
+    def function_call_analysis(self):
+
+        #Search all function calls in code block
+        fcalls = list(self._find(CursorKind.CALL_EXPR))
+
+        # Filter functions not defined in the same file (definition not accessible) (is enough?)
+        fcalls =[x for x in fcalls if x.get_definition() is not None ]
+
+        return fcalls
+
+
+
+class DeclarationCursor (DopingCursorBase):
+    '''
+    Subclass for AST nodes that containt a Declaration Statement.
+
+    Declaration statements can be:
+    [modifiers] type id;
+    [modifiers] type id = value;
+    '''
+
+
+    def get_type_id_string(self):
+        tokens = [x.spelling for x in self.get_tokens()]
+
+        if tokens.count("=") == 1:
+            # Initialization declaration
+            index = tokens.index("=") - 1
+        elif tokens.count("=") == 0:
+            # Declaration without initialization
+            index = tokens.index(";") - 1
+        else:
+            raise ValueError("Unexpected string")
+
+        varname = tokens[index]
+        datatype = " ".join(tokens[0:index])
+        return datatype, varname
+
+
+class ForCursor (DopingCursorBase) :
+    '''
+    Subclass for AST nodes that containt a For Loop block.
+
+    For loops have the form:
+    for(initialization;end_condition;increment){
+        body
+    }
+    '''
+
+    #Attributes?
+    def get_initialization(self):
+        return self.get_children()[3]
+
+    def get_end_condition(self):
+        return self.get_children()[3]
+
+    def get_increment(self):
+        return self.get_children()[3]
+
+    def get_body(self):
+        return self.get_children()[3]
+
+
+    def initalization_string(self):  
+        init = self.get_initialization()
+        # BUG: libclang get_tokens returns one more token than needed
+        tokens = [x.spelling for x in init.get_tokens() if x.spelling != ";"]
+        return " ".join(tokens)
+
+    def end_condition_string(self):
+        cond = self.get_end_condition()
+        tokens = [x.spelling for x in cond.get_tokens() if x.spelling != ";"]
+        return " ".join(tokens)
+
+    def increment_string(self):
+        incr = self.get_increment()
+        tokens = [x.spelling for x in incr.get_tokens()]
+        return " ".join(tokens)
+
+    def body_string(self):
+        body = self.get_body()
+        # BUG: libclang get_tokens, it returns one more token than needed
+        # [:-1] due to a bug in libclang?
+        string = ""
+        line = list(body.get_tokens())[0].location.line
+        for token in list(body.get_tokens())[:-1]:
+            while (token.location.line > line):
+                line = line + 1
+                string = string + "\n"
+            string = string + " " + token.spelling
+
+
+        # bug in libclang get_tokens, it returns one more token than needed
+        string = string + ";"
+        return string
+
+
+    def cond_variable(self):
+        init = self.get_children()[0]
+        tokens = [x.spelling for x in get_initialization().get_tokens()]
+        if tokens.count("," > 1):
+            raise NotImplementedError("Multiple initialization for loops not implemented yet.")
+        elif tokens.count("=") == 1:
+            eqindex = tokens.index("=")
+            return " ".join(tokens[eqindex - 1])
+        else:
+            raise NotImplementedError("Just implemented for loops with simple initialization.")
+
+    def cond_starting_value(self):
+        tokens = [x.spelling for x in self.get_init_tokens()]
+
+        if tokens.count("=") == 1:
+            eqindex = tokens.index("=")
+            return tokens[eqindex + 1]
+        else:
+            raise NotImplementedError("Just implemented for loops with simple initialization")
+
+    def cond_end_value(self):
+
+        # FIXME: Probably it just work with possitive numbers
+        tokens = self.get_cond_tokens()
+
+        try:
+            endindex = tokens.index(";")
+        except:
+            endindex = len(tokens)
+        addition = ""
+
+        if tokens.count(",") == 1:
+            raise NotImplementedError("Multiple increments for loops not implemented yet.")
+        if tokens.count("<") == 1:
+            startindex = tokens.index("<")
+            addition = " - 1"
+        elif tokens.count(">") == 1:
+            eqindex = tokens.index(">")
+            addition = " + 1"
+        elif tokens.count("<=") == 1:
+            eqindex = tokens.index("<=")
+        elif tokens.count(">=") == 1:
+            eqindex = tokens.index(">=")
+        else:
+            raise NotImplementedError("Just implemented for loops with simple conditions")
+
+        return "(" + " ".join(tokens[startindex + 1 : endindex]) + addition + ")"
+
+
+    def get_first_n_cond_tokens(self, n = 16):
+
+        # Wrong implementation
+        tokens = self.get_tokens(self.condition)
+        #print(len(tokens))
+        if len(tokens) != 4:
+            raise NotImplementedError("Just implemented for simple conditions")
+        if tokens[1] in BINARY_RELATIONAL_OPERATORS_MT:
+            tokens.insert(3,"+")
+            tokens.insert(4,"(")
+            return tokens
+        elif tokens[1] in BINARY_RELATIONAL_OPERATORS_LT:
+            tokens.insert(3,"-")
+            tokens.insert(4,"(")
+            return tokens
+        else:
+            raise NotImplementedError("Token " + tokens[1] + " not recognized")
+
+
+    def is_affine(self):
+        pass
+        # 1) All loop upper bounds and contained control conditions have to be
+        # expressible as a linear affine expression in the containing loop index
+        # variables and formal parameters (i.e., loop invariant values like function
+        # parameters, globals, and so on)
+        # 2) Memory accesses can be represented as accesses to a base address (say,
+        # the address of an array) at an offset which in turn is an affine function
+        # in the loop iteration variables and formal parameters.
+        # 2.1) There is no possible aliasing (e.g.,overlap of two arrays) between 
+        # statically distinct base addresses.
+        # 3) There are no calls contained in the loop whose memory effects are 
+        # statically unknown or which possibly have any observable side-effects
+        # or do not provably return.
+
+    def has_multiple_conditions():
+        # Last token from the first children of the condition contains the operation
+        operator = self.condition.get_children()[0].get_tokens()[-1].decode("utf-8")
+        return not (operator in BINARY_RELATIONAL_OPERATORS) 
+
+
+    def variable_analysis(self):
+        """ For each variable inside the loop body differenciate between:
+        - Local variables: Variables declared and used only in the loop scope
+        - Modified global variables: Variables with global scope modified within the loop
+        - Arrays/Pointers readed:
+        - Run-time constants: Variables with global scope but not modified in the loop
+        """
+        local_vars = []
+        arrays = []
+        written_scalars = []
+        runtime_constants = []
+
+        #print self
+        # Find variable declarations inside the loop
+        for decl in self.find_declarations():
+            local_vars.append(decl.get_children()[0])
+
+        #arrays = map(lambda x: x.get_children()[0],self.find_array_accesses())
+        for a_access in self.find_array_accesses():
+            x = a_access
+            while x.get_children()[0].displayname == "": # recurse down in case it is a multidimensional array
+                x = x.get_children()[0]
+            if x.get_children()[0].displayname not in map(lambda i: i.displayname, arrays): # avoid duplicates
+                arrays.append(x.get_children()[0])
+
+
+
+        arrays_dp = map(lambda x : x.displayname, arrays)
+        decl_dp = map(lambda x : x.displayname, local_vars)
+
+        for assignment in self.find_assignments():
+            var = assignment.get_children()[0]
+            if (var not in local_vars) and \
+               (var.displayname not in map(lambda i: i.displayname, written_scalars)) :
+                # avoid duplicated (FIXME: but what happend with multiple declarations with same name?)
+                if var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR:
+                    written_scalars.append(var)
+
+        write_dp = map(lambda x : x.displayname, written_scalars)
+        runtime_constants = []
+        ru_dp = []
+        for access in self.find_all_accesses():
+            if (access.displayname not in ru_dp) and \
+               (access.displayname not in decl_dp) and \
+               (access.displayname not in write_dp) and \
+               (access.displayname not in arrays_dp) and \
+               (access.displayname != ''):
+                    if access.type_is_scalar() and (access.get_children()[0].kind != CursorKind.CALL_EXPR) :
+                        ru_dp.append(access.displayname)
+                        runtime_constants.append(access)
+                    if access.type_is_pointer() and (access.get_children()[0].kind != CursorKind.CALL_EXPR):
+                        arrays.append(access)
+                        arrays_dp.append(access.displayname)
+
+
+        return local_vars, arrays, written_scalars, runtime_constants
+
+
+

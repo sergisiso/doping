@@ -9,7 +9,7 @@ compile:
 
 run: compile
 	# MultipleMatrixmult
-	#python2 ./src/doping.py -- ${CC} ${FLAGS} test/multiplematrixmult/mm.cc -o qtest
+	python2 ./src/doping.py -- ${CC} ${FLAGS} test/multiplematrixmult/mm.cc -o qtest
 	#time ./qtest 20 1000000
 	#${CC} ${FLAGS} test/multiplematrixmult/mm.cc -o qtest_original
 	#time ./qtest_original 20 1000000
@@ -36,7 +36,7 @@ unittest:
 	cd src && python -m pytest
 
 test: compile
-	#cd test && ./run_tests.sh
+	cd test && ./run_tests.sh
 
 clean:
 	rm -rf bin/* *.log test/*.log qtest qtest_original
