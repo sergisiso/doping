@@ -9,14 +9,12 @@ BINARY_LOGICAL_OPERATORS = ("&&","||")
 
 class DopingCursorBase(Cursor):
 
-# IMPORTANT: All Cursor movements/traversals/references should
-# call the instantiate_node to remain inside DOpIng functionality
-# at the moment the traversal methods implemented are:
-#  -  get_children()
-#
-# Do RETURN use other Clang Cursor references
-#
-
+    # IMPORTANT: All Cursor movements/traversals/references should
+    # call the instantiate_node to remain inside DOpIng functionality
+    # at the moment the traversal methods implemented are:
+    #  -  get_children()
+    #
+    # Do RETURN use other Clang Cursor references
     @staticmethod
     def instantiate_node(node):
         if(node.kind == CursorKind.FOR_STMT):
@@ -29,11 +27,16 @@ class DopingCursorBase(Cursor):
             node.__class__ = DopingCursorBase
             return node
 
+    def get_children(self):
+        return [DopingCursorBase.instantiate_node(x)
+            for x in super(DopingCursorBase,self).get_children()]
+
+
     ############################
-    # HELPER FUNCTIONS
+    # HELPER METHODS
     ############################
 
-# some should be attributes ??
+    # TODO: some should be attributes ??
     def is_for(self):
         return self.kind == CursorKind.FOR_STMT
 
@@ -41,7 +44,8 @@ class DopingCursorBase(Cursor):
         return self.kind == CursorKind.COMPOUND_STMT
 
     def type_is_scalar(self):
-        return (self.type.kind.value >= 4) and (self.type.kind.value <= 23)
+        return ((self.type.kind.value >= 4) and
+                (self.type.kind.value <= 23))
 
     def type_is_pointer(self):
         return (self.type.kind == TypeKind.POINTER)
@@ -59,39 +63,53 @@ class DopingCursorBase(Cursor):
         return string in self.get_string()
 
     def str_position(self):
-        name = self.location.file.name.decode("utf-8") 
+        name = str(self.location)
         line = str(self.location.line)
         col  = str(self.location.column) 
         return "["+ name + ", line:" + line + ", col:" + col+ "]"
 
-    def node_to_str(self, ptokens=False, recursion_level = 0):
-        childrenstr = []
-        if recursion_level < 10:
-            for child in self.get_children() :
-                childrenstr.append(child.node_to_str(ptokens,recursion_level+1))
+    ############################
+    # PRINTING METHODS
+    ############################
 
-        # Displayname has more information in some situations
-        text = self.spelling or self.displayname
-        kind = str(self.kind)[str(self.kind).index('.')+1:]
-        #tokens = ""
-        tokens = " ".join([x.spelling for x in self.get_tokens()])
-        return  ("   " * recursion_level) + kind + " " + text.decode("utf-8") \
-                + " " + tokens + "\n" + "\n".join(childrenstr)
+    def view(self, indent=0, infile=False, recursion_limit=10):
+        if indent < recursion_limit:
+            indentstring = (("| " * indent) + "|-")[2:]
+            kind = str(self.kind)[str(self.kind).index('.')+1:]
+            text = self.spelling #or self.displayname
+            # Displayname has more information in some situations
+            #tokens = " ".join([x.spelling for x in self.get_tokens()])
+
+            print(indentstring + kind + " " + text) 
+            for child in self.get_children():
+                child.view(indent+1)
+
+
+    def __str__(self):
+        result = str(self.kind)[str(self.kind).index('.')+1:]
+        if len(self.get_children()) > 0:
+            result += "("
+            result += ",".join([str(child)
+                                for child in self.get_children()])
+            result += ")"
+        return result
 
 
     #######################################   
-    # find_* Tree search functions: 
+    # find_* Generators
     #######################################   
 
-    def find_loops(self, outermostonly = True,):
-        return self._find(CursorKind.FOR_STMT, outermostonly)
+    def find_loops(self, outermostonly = True, exclude_headers = True):
+        return self._find(CursorKind.FOR_STMT, outermostonly, exclude_headers)
 
-    def find_includes(self):
+    def find_includes(self, infile=True):
         return self._find(CursorKind.INCLUSION_DIRECTIVE, True)
 
-    def find_declarations(self):
+    def find_declarations(self, infile=True):
         return self._find(CursorKind.DECL_STMT)
         
+    def find_functions(self, exclude_header=True):
+        return self._find(CursorKind.FUNCTION_DECL, exclude_header)
 
     def find_assignments(self, fromfile = False):
         assignments = []
@@ -117,11 +135,15 @@ class DopingCursorBase(Cursor):
     def find_all_accesses(self):
         return self._find(CursorKind.UNEXPOSED_EXPR)
 
-    def _find(self, searchtype, outermostonly = False):
+    def _find(self, searchtype, outermostonly=False, exclude_headers=True):
+        if exclude_headers:
+            if not self.location.file is None:
+                if self.location.file.name.endswith(('.h','.hpp')):
+                    return # Does not yield anything
         if (self.kind == searchtype):
             yield self
 
-        # If it needs to continue searching recurse into the children
+        # If it needs to continue searching recurse down into the children
         if (self.kind != searchtype or not outermostonly):    
             if (self.kind == CursorKind.CALL_EXPR):
                 for c in self.get_children()[1:]: #Remove name node of function calls
@@ -133,13 +155,9 @@ class DopingCursorBase(Cursor):
                         yield match
 
 
-    def get_children(self):
-        return [instantiate_node(x) for x in super(ASTNode,self).get_children()]
-
-    def __str__(self):
-        return "AST:\n" + self.node_to_str(self)
-
-
+    #######################################   
+    # Analysis methods 
+    #######################################   
 
     def function_call_analysis(self):
 
@@ -161,8 +179,6 @@ class DeclarationCursor (DopingCursorBase):
     [modifiers] type id;
     [modifiers] type id = value;
     '''
-
-
     def get_type_id_string(self):
         tokens = [x.spelling for x in self.get_tokens()]
 

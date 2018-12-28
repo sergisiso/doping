@@ -22,17 +22,3 @@ class DopingTranslationUnit():
         root = self.TU.cursor
         root.__class__ = DopingCursorBase
         return root
-
-    def get_file_cursor(self):
-        pass
-
-    def get_outermostloops_in_file(self):
-        pass
-
-    def get_includes(self):
-        pass
-
-
-
-        
-
