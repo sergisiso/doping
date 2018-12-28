@@ -12,7 +12,7 @@ class TestRewriter(object):
     @pytest.fixture
     def samplefile(self,tmpdir):
         ''' Creates a temporary file called test.txt with 3 lines '''
-        filename = os.path.join(tmpdir,"test.txt")
+        filename = os.path.join(str(tmpdir),"test.txt")
         with open(filename,"w") as f:
             f.write("Original1\n")
             f.write("Original2\n")
@@ -22,7 +22,7 @@ class TestRewriter(object):
     @pytest.fixture
     def sampleRewriter(self,tmpdir):
         ''' Creates a Rewriter object with a non-existent file '''
-        fn = os.path.join(tmpdir,"empty.txt")
+        fn = os.path.join(str(tmpdir),"empty.txt")
         return Rewriter(fn)
 
     @pytest.fixture
@@ -51,7 +51,7 @@ class TestRewriter(object):
 
     def test_init_nonexistent_file(self,tmpdir):
         ''' Class contructor with an non-existing file '''
-        fn = os.path.join(tmpdir,"nonexistent.txt")
+        fn = os.path.join(str(tmpdir),"nonexistent.txt")
         obj = Rewriter(fn)
         assert obj.filename == fn
         assert obj.original_num_lines == 0

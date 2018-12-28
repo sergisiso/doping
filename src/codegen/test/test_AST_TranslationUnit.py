@@ -13,7 +13,7 @@ class TestDopingTranslationUnit(object):
     @pytest.fixture
     def invalidfile1(self,tmpdir):
         ''' Creates a temporary file called test.txt with 3 lines '''
-        filename = os.path.join(tmpdir,"test.txt")
+        filename = os.path.join(str(tmpdir),"test.txt")
         with open(filename,"w") as f:
             f.write("Invalid format\n")
         return filename
@@ -21,7 +21,7 @@ class TestDopingTranslationUnit(object):
     @pytest.fixture
     def invalidfile2(self,tmpdir):
         ''' Creates a invalid c file - missing a ;'''
-        filename = os.path.join(tmpdir,"test.c")
+        filename = os.path.join(str(tmpdir),"test.c")
         with open(filename,"w") as f:
             f.write(
             '''
@@ -40,7 +40,7 @@ class TestDopingTranslationUnit(object):
     @pytest.fixture
     def cfile(self,tmpdir):
         ''' Creates a temporary c file'''
-        filename = os.path.join(tmpdir,"test.c")
+        filename = os.path.join(str(tmpdir),"test.c")
         with open(filename,"w") as f:
             f.write(
             '''
@@ -61,7 +61,7 @@ class TestDopingTranslationUnit(object):
 
 
     def test_init_non_existent_file(self,tmpdir):
-        fn = os.path.join(tmpdir,"non-existent.c")
+        fn = os.path.join(str(tmpdir),"non-existent.c")
         with pytest.raises(FileNotFoundError):
             tu = DopingTranslationUnit(fn)
 

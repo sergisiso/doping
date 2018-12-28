@@ -14,7 +14,7 @@ class TestDopingCursorBase(object):
     @pytest.fixture
     def sampleCursor(self,tmpdir):
         ''' Creates a temporary file called test.c with helloworld'''
-        filename = os.path.join(tmpdir,"test.c")
+        filename = os.path.join(str(tmpdir),"test.c")
         with open(filename,"w") as f:
             f.write(
             '''

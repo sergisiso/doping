@@ -9,10 +9,10 @@ class DopingTranslationUnit():
 
     def __init__(self, filename):
         if not os.path.isfile(filename):
-            raise FileNotFoundError(f"{filename} does not exist")
+            raise FileNotFoundError("{0} does not exist".format(filename))
         extension = os.path.splitext(filename)[1]
         if extension not in (".c",".cc",".cpp"):
-            raise ValueError(f"Unrecognized file extension in {filename}")
+            raise ValueError("Unrecognized file extension in {0}".format(filename))
 
         self.filename = filename
         index = Index.create()

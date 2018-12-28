@@ -39,9 +39,10 @@ test: compile
 	cd test && ./run_tests.sh
 
 clean:
-	rm -rf bin/* *.log test/*.log qtest qtest_original
+	rm -rf bin/*.o *.log test/*.log qtest qtest_original Doping.egg-info dist
 	cd test/helloworld && make clean
 	cd test/imgfilt && make clean
 	cd test/multiplematrixmult && make clean
 	cd test/skewedgaussseidel && make clean
+	cd doc && make clean
 
