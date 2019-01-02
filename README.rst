@@ -128,6 +128,13 @@ check the code coverage with:
     cd doc
     make html
 
+
+6. Make sure all code passes the pycodestyle format test.
+
+.. code-block:: bash
+
+    pycodestyle src/codegen/*
+
 Note that there are additional depencenies to generate new UML diagram images (Plantuml, java and graphviz) and Latex documentation(Latex distribution). These should be installed manually.
 
 Finally, to clean binaries and temporal files you can use:

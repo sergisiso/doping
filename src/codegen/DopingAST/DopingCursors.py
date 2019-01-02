@@ -1,22 +1,25 @@
 from clang.cindex import *
 
-BINARY_ARITHMETIC_OPERATORS = ("+","-","*","/","%")
-UNARY_ARITHMETIC_OPERATORS = ("++","--")
-BINARY_RELATIONAL_OPERATORS = ("==","!=",">","<",">=","<=")
-BINARY_RELATIONAL_OPERATORS_MT = (">",">=")
-BINARY_RELATIONAL_OPERATORS_LT = ("<","<=")
-BINARY_LOGICAL_OPERATORS = ("&&","||")
+BINARY_ARITHMETIC_OPERATORS = ("+", "-", "*", "/", "%")
+UNARY_ARITHMETIC_OPERATORS = ("++", "--")
+BINARY_RELATIONAL_OPERATORS = ("==", "!=", ">", "<", ">=", "<=")
+BINARY_RELATIONAL_OPERATORS_MT = (">", ">=")
+BINARY_RELATIONAL_OPERATORS_LT = ("<", "<=")
+BINARY_LOGICAL_OPERATORS = ("&&", "||")
+
 
 class DopingCursorBase(Cursor):
+    '''
+    Doping Cursor which inherits from Clang Cursors and extends it.
+    '''
 
     # IMPORTANT: All Cursor movements/traversals/references should
     # call the instantiate_node to remain inside DOpIng functionality
     # at the moment the traversal methods implemented are:
     #  -  get_children()
-    #
-    # Do RETURN use other Clang Cursor references
+
     @staticmethod
-    def instantiate_node(node):
+    def _instantiate_node(node):
         if(node.kind == CursorKind.FOR_STMT):
             node.__class__ = ForCursor
             return node
@@ -28,9 +31,12 @@ class DopingCursorBase(Cursor):
             return node
 
     def get_children(self):
-        return [DopingCursorBase.instantiate_node(x)
-            for x in super(DopingCursorBase,self).get_children()]
-
+        '''
+        Calls Clang AST get_children method but it then instantiate
+        the object to proper Doping Cursor subclass.
+        '''
+        return [DopingCursorBase._instantiate_node(x)
+                for x in super(DopingCursorBase, self).get_children()]
 
     ############################
     # HELPER METHODS
@@ -65,25 +71,28 @@ class DopingCursorBase(Cursor):
     def str_position(self):
         name = str(self.location)
         line = str(self.location.line)
-        col  = str(self.location.column) 
-        return "["+ name + ", line:" + line + ", col:" + col+ "]"
+        col = str(self.location.column)
+        return "[" + name + ", line:" + line + ", col:" + col + "]"
 
     ############################
     # PRINTING METHODS
     ############################
 
     def view(self, indent=0, infile=False, recursion_limit=10):
+        '''
+        Writes in stdout a representation of the AST tree starting
+        at the node.
+        '''
         if indent < recursion_limit:
             indentstring = (("| " * indent) + "|-")[2:]
             kind = str(self.kind)[str(self.kind).index('.')+1:]
-            text = self.spelling #or self.displayname
+            text = self.spelling  # or self.displayname
             # Displayname has more information in some situations
-            #tokens = " ".join([x.spelling for x in self.get_tokens()])
+            # tokens = " ".join([x.spelling for x in self.get_tokens()])
 
-            print(indentstring + kind + " " + text) 
+            print(indentstring + kind + " " + text)
             for child in self.get_children():
                 child.view(indent+1)
-
 
     def __str__(self):
         result = str(self.kind)[str(self.kind).index('.')+1:]
@@ -94,24 +103,23 @@ class DopingCursorBase(Cursor):
             result += ")"
         return result
 
-
-    #######################################   
+    #######################################
     # find_* Generators
-    #######################################   
+    #######################################
 
-    def find_loops(self, outermostonly = True, exclude_headers = True):
+    def find_loops(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.FOR_STMT, outermostonly, exclude_headers)
 
-    def find_includes(self, infile=True):
+    def find_includes(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.INCLUSION_DIRECTIVE, True)
 
-    def find_declarations(self, infile=True):
+    def find_declarations(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.DECL_STMT)
-        
-    def find_functions(self, exclude_header=True):
+
+    def find_functions(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.FUNCTION_DECL, exclude_header)
 
-    def find_assignments(self, fromfile = False):
+    def find_assignments(self, outermostonly=False, exclude_headers=True):
         assignments = []
         caos = self._find(CursorKind.COMPOUND_ASSIGNMENT_OPERATOR)
         assignments.extend(caos)
@@ -126,27 +134,30 @@ class DopingCursorBase(Cursor):
 
         return assignments
 
-    def find_array_accesses(self):
+    def find_array_accesses(self, outermostonly=False,
+                            exclude_headers=True):
         return self._find(CursorKind.ARRAY_SUBSCRIPT_EXPR)
 
-    def find_pointer_references(self):
+    def find_pointer_references(self, outermostonly=False,
+                                exclude_headers=True):
         pass
 
-    def find_all_accesses(self):
+    def find_all_accesses(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.UNEXPOSED_EXPR)
 
     def _find(self, searchtype, outermostonly=False, exclude_headers=True):
         if exclude_headers:
-            if not self.location.file is None:
-                if self.location.file.name.endswith(('.h','.hpp')):
-                    return # Does not yield anything
+            if self.location.file is not None:
+                if self.location.file.name.endswith(('.h', '.hpp')):
+                    return  # Does not yield anything
         if (self.kind == searchtype):
             yield self
 
         # If it needs to continue searching recurse down into the children
-        if (self.kind != searchtype or not outermostonly):    
+        if (self.kind != searchtype or not outermostonly):
             if (self.kind == CursorKind.CALL_EXPR):
-                for c in self.get_children()[1:]: #Remove name node of function calls
+                # [1:] to Remove name node of function calls
+                for c in self.get_children()[1:]:
                     for match in c._find(searchtype, outermostonly):
                         yield match
             else:
@@ -154,21 +165,20 @@ class DopingCursorBase(Cursor):
                     for match in c._find(searchtype, outermostonly):
                         yield match
 
-
-    #######################################   
-    # Analysis methods 
-    #######################################   
+    #######################################
+    # Analysis methods
+    #######################################
 
     def function_call_analysis(self):
 
-        #Search all function calls in code block
+        # Search all function calls in code block
         fcalls = list(self._find(CursorKind.CALL_EXPR))
 
-        # Filter functions not defined in the same file (definition not accessible) (is enough?)
-        fcalls =[x for x in fcalls if x.get_definition() is not None ]
+        # Filter functions not defined in the same file
+        # (definition not accessible) (is this enough?)
+        fcalls = [x for x in fcalls if x.get_definition() is not None]
 
         return fcalls
-
 
 
 class DeclarationCursor (DopingCursorBase):
@@ -196,7 +206,7 @@ class DeclarationCursor (DopingCursorBase):
         return datatype, varname
 
 
-class ForCursor (DopingCursorBase) :
+class ForCursor (DopingCursorBase):
     '''
     Subclass for AST nodes that containt a For Loop block.
 
@@ -204,7 +214,7 @@ class ForCursor (DopingCursorBase) :
     for(initialization;end_condition;increment){body}
     '''
 
-    #Attributes?
+    # Should this be Attributes?
     def get_initialization(self):
         return self.get_children()[3]
 
@@ -217,8 +227,7 @@ class ForCursor (DopingCursorBase) :
     def get_body(self):
         return self.get_children()[3]
 
-
-    def initalization_string(self):  
+    def initalization_string(self):
         init = self.get_initialization()
         # BUG: libclang get_tokens returns one more token than needed
         tokens = [x.spelling for x in init.get_tokens() if x.spelling != ";"]
@@ -246,22 +255,24 @@ class ForCursor (DopingCursorBase) :
                 string = string + "\n"
             string = string + " " + token.spelling
 
-
         # bug in libclang get_tokens, it returns one more token than needed
         string = string + ";"
         return string
-
 
     def cond_variable(self):
         init = self.get_children()[0]
         tokens = [x.spelling for x in get_initialization().get_tokens()]
         if tokens.count("," > 1):
-            raise NotImplementedError("Multiple initialization for loops not implemented yet.")
+            raise NotImplementedError(
+                "Multiple initialization for loops not implemented yet."
+            )
         elif tokens.count("=") == 1:
             eqindex = tokens.index("=")
             return " ".join(tokens[eqindex - 1])
         else:
-            raise NotImplementedError("Just implemented for loops with simple initialization.")
+            raise NotImplementedError(
+                "Just implemented for loops with simple initialization."
+            )
 
     def cond_starting_value(self):
         tokens = [x.spelling for x in self.get_init_tokens()]
@@ -270,7 +281,9 @@ class ForCursor (DopingCursorBase) :
             eqindex = tokens.index("=")
             return tokens[eqindex + 1]
         else:
-            raise NotImplementedError("Just implemented for loops with simple initialization")
+            raise NotImplementedError(
+                "Just implemented for loops with simple initialization"
+            )
 
     def cond_end_value(self):
 
@@ -279,12 +292,14 @@ class ForCursor (DopingCursorBase) :
 
         try:
             endindex = tokens.index(";")
-        except:
+        except IndexError:
             endindex = len(tokens)
         addition = ""
 
         if tokens.count(",") == 1:
-            raise NotImplementedError("Multiple increments for loops not implemented yet.")
+            raise NotImplementedError(
+                "Multiple increments for loops not implemented yet."
+            )
         if tokens.count("<") == 1:
             startindex = tokens.index("<")
             addition = " - 1"
@@ -296,90 +311,106 @@ class ForCursor (DopingCursorBase) :
         elif tokens.count(">=") == 1:
             eqindex = tokens.index(">=")
         else:
-            raise NotImplementedError("Just implemented for loops with simple conditions")
+            raise NotImplementedError(
+                "Just implemented for loops with simple conditions"
+            )
 
-        return "(" + " ".join(tokens[startindex + 1 : endindex]) + addition + ")"
+        return ("(" + " ".join(tokens[startindex + 1: endindex]) +
+                addition + ")")
 
-
-    def get_first_n_cond_tokens(self, n = 16):
+    def get_first_n_cond_tokens(self, n=16):
 
         # Wrong implementation
         tokens = self.get_tokens(self.condition)
-        #print(len(tokens))
+        # print(len(tokens))
         if len(tokens) != 4:
-            raise NotImplementedError("Just implemented for simple conditions")
+            raise NotImplementedError(
+                "Just implemented for simple conditions"
+            )
         if tokens[1] in BINARY_RELATIONAL_OPERATORS_MT:
-            tokens.insert(3,"+")
-            tokens.insert(4,"(")
+            tokens.insert(3, "+")
+            tokens.insert(4, "(")
             return tokens
         elif tokens[1] in BINARY_RELATIONAL_OPERATORS_LT:
-            tokens.insert(3,"-")
-            tokens.insert(4,"(")
+            tokens.insert(3, "-")
+            tokens.insert(4, "(")
             return tokens
         else:
             raise NotImplementedError("Token " + tokens[1] + " not recognized")
 
-
     def is_affine(self):
         pass
-        # 1) All loop upper bounds and contained control conditions have to be
-        # expressible as a linear affine expression in the containing loop index
-        # variables and formal parameters (i.e., loop invariant values like function
-        # parameters, globals, and so on)
-        # 2) Memory accesses can be represented as accesses to a base address (say,
-        # the address of an array) at an offset which in turn is an affine function
-        # in the loop iteration variables and formal parameters.
-        # 2.1) There is no possible aliasing (e.g.,overlap of two arrays) between 
-        # statically distinct base addresses.
-        # 3) There are no calls contained in the loop whose memory effects are 
-        # statically unknown or which possibly have any observable side-effects
-        # or do not provably return.
+        # 1) All loop upper bounds and contained control conditions have to
+        # be expressible as a linear affine expression in the containing
+        # loop index variables and formal parameters (i.e., loop invariant
+        # values like function parameters, globals, and so on)
+        # 2) Memory accesses can be represented as accesses to a base
+        # address (say, the address of an array) at an offset which in turn
+        # is an affine function in the loop iteration variables and formal
+        # parameters.
+        # 2.1) There is no possible aliasing (e.g.,overlap of two arrays)
+        # between statically distinct base addresses.
+        # 3) There are no calls contained in the loop whose memory effects
+        # are statically unknown or which possibly have any observable
+        # side-effects or do not provably return.
 
     def has_multiple_conditions():
-        # Last token from the first children of the condition contains the operation
-        operator = self.condition.get_children()[0].get_tokens()[-1].decode("utf-8")
-        return not (operator in BINARY_RELATIONAL_OPERATORS) 
-
+        # Last token from the first children of the condition contains
+        # the operation
+        operator = self.condition.get_children()[0].get_tokens()[-1]
+        # .decode("utf-8")
+        return not (operator in BINARY_RELATIONAL_OPERATORS)
 
     def variable_analysis(self):
-        """ For each variable inside the loop body differenciate between:
-        - Local variables: Variables declared and used only in the loop scope
-        - Modified global variables: Variables with global scope modified within the loop
-        - Arrays/Pointers readed:
-        - Run-time constants: Variables with global scope but not modified in the loop
-        """
+        '''
+        For each variable inside the loop body differenciate between:
+
+        1. Local variables: Variables declared and used only in the loop scope.
+
+        2. Modified global variables: Variables with global scope modified
+        within the loop.
+
+        3. Arrays/Pointers readed.
+
+        4. Run-time constants: Variables with global scope but not modified
+        in the loop.
+
+        '''
         local_vars = []
         arrays = []
         written_scalars = []
         runtime_constants = []
 
-        #print self
         # Find variable declarations inside the loop
         for decl in self.find_declarations():
             local_vars.append(decl.get_children()[0])
 
-        #arrays = map(lambda x: x.get_children()[0],self.find_array_accesses())
+        # arrays = map(lambda x: x.get_children()[0],
+        #              self.find_array_accesses())
+
         for a_access in self.find_array_accesses():
             x = a_access
-            while x.get_children()[0].displayname == "": # recurse down in case it is a multidimensional array
+            while x.get_children()[0].displayname == "":
+                # recurse down in case it is a multidimensional array
                 x = x.get_children()[0]
-            if x.get_children()[0].displayname not in map(lambda i: i.displayname, arrays): # avoid duplicates
+            if (x.get_children()[0].displayname not in
+               map(lambda i: i.displayname, arrays)):  # avoid duplicates
                 arrays.append(x.get_children()[0])
 
-
-
-        arrays_dp = map(lambda x : x.displayname, arrays)
-        decl_dp = map(lambda x : x.displayname, local_vars)
+        arrays_dp = map(lambda x: x.displayname, arrays)
+        decl_dp = map(lambda x: x.displayname, local_vars)
 
         for assignment in self.find_assignments():
             var = assignment.get_children()[0]
             if (var not in local_vars) and \
-               (var.displayname not in map(lambda i: i.displayname, written_scalars)) :
-                # avoid duplicated (FIXME: but what happend with multiple declarations with same name?)
+               (var.displayname not in
+               map(lambda i: i.displayname, written_scalars)):
+                # avoid duplicated (FIXME: but what happend with
+                # multiple declarations with same name?)
                 if var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR:
                     written_scalars.append(var)
 
-        write_dp = map(lambda x : x.displayname, written_scalars)
+        write_dp = map(lambda x: x.displayname, written_scalars)
         runtime_constants = []
         ru_dp = []
         for access in self.find_all_accesses():
@@ -388,15 +419,15 @@ class ForCursor (DopingCursorBase) :
                (access.displayname not in write_dp) and \
                (access.displayname not in arrays_dp) and \
                (access.displayname != ''):
-                    if access.type_is_scalar() and (access.get_children()[0].kind != CursorKind.CALL_EXPR) :
+                    if access.type_is_scalar() and \
+                       (access.get_children()[0].kind !=
+                       CursorKind.CALL_EXPR):
                         ru_dp.append(access.displayname)
                         runtime_constants.append(access)
-                    if access.type_is_pointer() and (access.get_children()[0].kind != CursorKind.CALL_EXPR):
+                    if access.type_is_pointer() and \
+                       (access.get_children()[0].kind !=
+                       CursorKind.CALL_EXPR):
                         arrays.append(access)
                         arrays_dp.append(access.displayname)
 
-
         return local_vars, arrays, written_scalars, runtime_constants
-
-
-
