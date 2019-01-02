@@ -201,9 +201,7 @@ class ForCursor (DopingCursorBase) :
     Subclass for AST nodes that containt a For Loop block.
 
     For loops have the form:
-    for(initialization;end_condition;increment){
-        body
-    }
+    for(initialization;end_condition;increment){body}
     '''
 
     #Attributes?

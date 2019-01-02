@@ -6,6 +6,10 @@
 Welcome to Doping's documentation!
 ==================================
 
+.. include:: ../../README.rst
+  :start-after: description-begin-marker-do-not-remove
+  :end-before: description-end-marker-do-not-remove
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
