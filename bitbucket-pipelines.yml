@@ -3,7 +3,7 @@
 # Only use spaces to indent your .yml configuration.
 # -----
 # You can specify a custom docker image from Docker Hub as your build environment.
-image: python:3.5.1
+image: python/3-stretch
 
 pipelines:
   default:
@@ -11,7 +11,7 @@ pipelines:
         caches:
           - pip
         script: # Modify the commands below to build your repository.
-          - apt install libclang-6.0-dev
+          - apt-get install libclang-6.0-dev
           - export LD_LIBRARY_PATH=/usr/lib/llvm-6.0/lib/:$LD_LIBRARY_PATH
           - pip install -e .[dev]
           - pytest --cov-report=term --cov=src/codegen src
