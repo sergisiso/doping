@@ -11,4 +11,7 @@ pipelines:
         caches:
           - pip
         script: # Modify the commands below to build your repository.
-          - pip install -r requirements.txt
+          - apt install libclang-6.0-dev
+          - export LD_LIBRARY_PATH=/usr/lib/llvm-6.0/lib/:$LD_LIBRARY_PATH
+          - pip install -e .[dev]
+          - pytest --cov-report=term --cov=src/codegen src
