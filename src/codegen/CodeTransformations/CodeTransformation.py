@@ -1,33 +1,45 @@
 from codegen.Rewriter import Rewriter
-from codegen.AST import AST
+from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
 
 
 class CodeTransformation:
 
-    filename = None
-    file = None
-    ast = None
+    _inputfile = None
+    _outputfile = None
+    _ast = None
+    _buffer = None
 
-    def __init__(self):
-        pass
-
-    def static_analysis(self, line=None):
-        self.ast = AST(self.filename)
-        ret = self._static_analysis(line)
+    def __init__(self, inputfile, outputfile):
+        self._inputfile = inputfile
+        self._outputfile = outputfile
 
     def apply(self):
-        self.file = Rewriter(self.filename)
-        self.ast = AST(self.filename)
-        ret = self._apply()
-        self.file.save()
-        return ret
+        tu = DopingTranslationUnit(self._inputfile)
+        self._ast = tu.get_root()
+        result = []
+        for loop in self._candidates():
+            if self._static_analysis(loop):
+                if self._buffer is None:
+                    self._buffer = Rewriter(self._outputfile)
+                    self._buffer.load(self._inputfile)
 
-    def _apply(self):
+                ret = self._apply(loop)
+                self._buffer.save()
+                result.append((loop.location, ret))
+            else:
+                result.append((loop.location, False))
+
+    def _candidates(self):
         raise NotImplementedError(
-            "This is an abstract class,instantiate one subclass"
+            "This is an abstract class, instantiate a subclass!"
         )
 
-    def _static_analysis(self):
+    def _apply(self, node):
         raise NotImplementedError(
-            "This is an abstract class, instantiate one subclass"
+            "This is an abstract class, instantiate a subclass!"
+        )
+
+    def _static_analysis(self, node):
+        raise NotImplementedError(
+            "This is an abstract class, instantiate a subclass!"
         )

@@ -114,8 +114,14 @@ class TestRewriter(object):
         rewriterObj.goto_original_line(3)
         assert rewriterObj._cursor == 3
 
-    def test_insert(self, rewriterObj):
+    def test_insert(self, rewriterObj, sampleRewriter):
         ''' Insert new line into the buffer, at the cursor position '''
+
+        # Insert to an empty buffer
+        sampleRewriter.insert("Insert1")
+        assert "Insert1" in sampleRewriter._content[0]
+        assert sampleRewriter._cursor == 2
+
         rewriterObj.goto_line(2)
         rewriterObj.insert("Insert1")
         assert "Insert1" in rewriterObj._content[rewriterObj._cursor - 2]

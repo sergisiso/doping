@@ -38,6 +38,19 @@ class DopingCursorBase(Cursor):
         return [DopingCursorBase._instantiate_node(x)
                 for x in super(DopingCursorBase, self).get_children()]
 
+    def find_file_includes(self):
+        #return filter(self.is_from_file, self.root.find_includes())
+
+        #Clang implementation above does not work! FIX! Meanwhile ugly implementation below.
+        includes = []
+        with open(str(self.location.file),'r') as f:
+            for line in f:
+                if line.startswith("#include"): includes.append(line)
+
+        return includes
+
+
+
     ############################
     # HELPER METHODS
     ############################
@@ -117,7 +130,7 @@ class DopingCursorBase(Cursor):
         return self._find(CursorKind.DECL_STMT)
 
     def find_functions(self, outermostonly=False, exclude_headers=True):
-        return self._find(CursorKind.FUNCTION_DECL, exclude_header)
+        return self._find(CursorKind.FUNCTION_DECL, exclude_headers)
 
     def find_assignments(self, outermostonly=False, exclude_headers=True):
         assignments = []
@@ -216,18 +229,18 @@ class ForCursor (DopingCursorBase):
 
     # Should this be Attributes?
     def get_initialization(self):
-        return self.get_children()[3]
+        return self.get_children()[0]
 
     def get_end_condition(self):
-        return self.get_children()[3]
+        return self.get_children()[1]
 
     def get_increment(self):
-        return self.get_children()[3]
+        return self.get_children()[2]
 
     def get_body(self):
         return self.get_children()[3]
 
-    def initalization_string(self):
+    def initialization_string(self):
         init = self.get_initialization()
         # BUG: libclang get_tokens returns one more token than needed
         tokens = [x.spelling for x in init.get_tokens() if x.spelling != ";"]
@@ -261,8 +274,8 @@ class ForCursor (DopingCursorBase):
 
     def cond_variable(self):
         init = self.get_children()[0]
-        tokens = [x.spelling for x in get_initialization().get_tokens()]
-        if tokens.count("," > 1):
+        tokens = [x.spelling for x in self.get_initialization().get_tokens()]
+        if tokens.count(",") > 1:
             raise NotImplementedError(
                 "Multiple initialization for loops not implemented yet."
             )
@@ -275,7 +288,7 @@ class ForCursor (DopingCursorBase):
             )
 
     def cond_starting_value(self):
-        tokens = [x.spelling for x in self.get_init_tokens()]
+        tokens = [x.spelling for x in self.get_initialization().get_tokens()]
 
         if tokens.count("=") == 1:
             eqindex = tokens.index("=")
@@ -288,11 +301,11 @@ class ForCursor (DopingCursorBase):
     def cond_end_value(self):
 
         # FIXME: Probably it just work with possitive numbers
-        tokens = self.get_cond_tokens()
+        tokens = [x.spelling for x in self.get_end_condition().get_tokens()]
 
         try:
             endindex = tokens.index(";")
-        except IndexError:
+        except ValueError:
             endindex = len(tokens)
         addition = ""
 
@@ -381,25 +394,11 @@ class ForCursor (DopingCursorBase):
         written_scalars = []
         runtime_constants = []
 
-        # Find variable declarations inside the loop
+        # 1. Find local variables: Declared inside the loop.
         for decl in self.find_declarations():
             local_vars.append(decl.get_children()[0])
 
-        # arrays = map(lambda x: x.get_children()[0],
-        #              self.find_array_accesses())
-
-        for a_access in self.find_array_accesses():
-            x = a_access
-            while x.get_children()[0].displayname == "":
-                # recurse down in case it is a multidimensional array
-                x = x.get_children()[0]
-            if (x.get_children()[0].displayname not in
-               map(lambda i: i.displayname, arrays)):  # avoid duplicates
-                arrays.append(x.get_children()[0])
-
-        arrays_dp = map(lambda x: x.displayname, arrays)
-        decl_dp = map(lambda x: x.displayname, local_vars)
-
+        # 2. Find variables that are written in the loop.
         for assignment in self.find_assignments():
             var = assignment.get_children()[0]
             if (var not in local_vars) and \
@@ -410,13 +409,27 @@ class ForCursor (DopingCursorBase):
                 if var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR:
                     written_scalars.append(var)
 
-        write_dp = map(lambda x: x.displayname, written_scalars)
+        # 3. Find arrays and pointers read in the loop.
+        for a_access in self.find_array_accesses():
+            x = a_access
+            while x.get_children()[0].displayname == "":
+                # recurse down in case it is a multidimensional array
+                x = x.get_children()[0]
+            if (x.get_children()[0].displayname not in
+               map(lambda i: i.displayname, arrays)):  # avoid duplicates
+                arrays.append(x.get_children()[0])
+
+        arrays_dp = [x.displayname for x in arrays]
+        local_dp = [x.displayname for x in local_vars]
+        written_dp = [x.displayname for x in written_scalars]
+
+        # 4. Variables which can be constant between loop iterations
         runtime_constants = []
         ru_dp = []
         for access in self.find_all_accesses():
             if (access.displayname not in ru_dp) and \
-               (access.displayname not in decl_dp) and \
-               (access.displayname not in write_dp) and \
+               (access.displayname not in local_dp) and \
+               (access.displayname not in written_dp) and \
                (access.displayname not in arrays_dp) and \
                (access.displayname != ''):
                     if access.type_is_scalar() and \

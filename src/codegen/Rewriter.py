@@ -41,7 +41,8 @@ class Rewriter:
 
     def load(self, filetocopy):
         '''
-        Populates rewrite buffer with filetocopy contents.
+        Populates rewrite buffer with filetocopy contents. It destroys any
+        previous content in the buffer.
 
         :param filetocopy: Path to file that will be copied into the buffer.
         '''
@@ -96,13 +97,14 @@ class Rewriter:
                              (self._ind_string * self._ind_level) + string)
 
         # Update deltas
-        for i in range(self._next_original_delta_index[self._cursor - 1],
-                       self._original_num_lines):
-            self._deltas[i] = self._deltas[i] + 1
+        if self._original_num_lines > 0:
+            for i in range(self._next_original_delta_index[self._cursor - 1],
+                           self._original_num_lines):
+                self._deltas[i] = self._deltas[i] + 1
 
-        no_index = self._next_original_delta_index[self._cursor - 1]
+            no_index = self._next_original_delta_index[self._cursor - 1]
 
-        self._next_original_delta_index.insert(self._cursor - 1, no_index)
+            self._next_original_delta_index.insert(self._cursor - 1, no_index)
 
         # for i in range(no_index, len(self._content)):
         #    self.next_original_delta_index[i] = \
@@ -113,11 +115,12 @@ class Rewriter:
 
     def insertpl(self, string):
         '''
-        Insert string at the end of the cursor possition contents.
+        Insert string at the end of the previous line and don't update the
+        cursor.
 
         :param string: String to insert.
         '''
-        self._content[self._cursor - 1] = (self._content[self._cursor - 1] +
+        self._content[self._cursor - 2] = (self._content[self._cursor - 2] +
                                            " " + string)
 
     def delete(self):
@@ -127,12 +130,13 @@ class Rewriter:
         self._content.pop(self._cursor - 1)
 
         # Update deltas
-        for i in range(self._next_original_delta_index[self._cursor],
-                       self._original_num_lines):
-            self._deltas[i] = self._deltas[i] - 1
+        if self._original_num_lines > 0:
+            for i in range(self._next_original_delta_index[self._cursor],
+                           self._original_num_lines):
+                self._deltas[i] = self._deltas[i] - 1
 
-        no_index = self._next_original_delta_index[self._cursor - 1]
-        self._next_original_delta_index.pop(self._cursor - 1)
+            no_index = self._next_original_delta_index[self._cursor - 1]
+            self._next_original_delta_index.pop(self._cursor - 1)
 
         # when cursor was last line, decrease it
         self._cursor = min(self._cursor, len(self._content))
@@ -149,7 +153,7 @@ class Rewriter:
 
     def comment(self):
         ''' Prefix cursor line with C-style comment symbol. '''
-        self.replace("//" + self._content[self._cursor])
+        self.replace("//" + self._content[self._cursor - 1])
 
     def increase_indexation(self):
         ''' Increase indentation level. '''
@@ -166,12 +170,18 @@ class Rewriter:
         :param start: Start line.
         :param end: End line.
         '''
-        for line in range(start, end):
-            print(str(line+1) + ": " + self._content[line])
+        print("--- Buffer from line " + str(start) + " to " + str(end) +
+              " ---")
+        for line in range(start, end + 1):
+            if line == self._cursor:
+                print("->" + str(line) + ": " + self._content[line - 1])
+            else:
+                print("  " + str(line) + ": " + self._content[line - 1])
+        print("--- End range ---")
 
     def printall(self):
         ''' Print full buffer.'''
-        self.print_range(0, len(self._content))
+        self.print_range(1, len(self._content))
 
     def save(self):
         ''' Save buffer contents to file. '''
