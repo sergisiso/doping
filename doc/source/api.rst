@@ -3,6 +3,7 @@
 Developer's API
 ===============
 
+.. image:: images/uml/classes.png
 
 Rewriter Class
 --------------

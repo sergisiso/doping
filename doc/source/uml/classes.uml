@@ -1,0 +1,21 @@
+@startuml
+Class DopingCLI
+Class CompilerManager
+Class CodeTransformation
+Class InjectDoping
+Class DelayedEvaluation
+Class Rewriter
+Class DopingTranslationUnit
+Class DopingCursorBase
+Class ForCursor
+Class DeclCursor
+CodeTransformation <|-- InjectDoping
+CodeTransformation <|-- DelayedEvaluation
+DopingCursorBase <|-- ForCursor
+DopingCursorBase <|-- DeclCursor
+DopingCLI --> CompilerManager
+DopingCLI --> CodeTransformation
+CodeTransformation --> Rewriter
+CodeTransformation --> DopingTranslationUnit
+CodeTransformation --> DopingCursorBase
+@enduml
