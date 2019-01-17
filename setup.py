@@ -37,5 +37,5 @@ if __name__ == '__main__':
         extras_require={
             'dev': DEV_REQUIREMENTS
             },
-        scripts=['bin/doping']
+        scripts=['bin/dope']
     )
