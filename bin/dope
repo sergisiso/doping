@@ -1,0 +1,98 @@
+#!/usr/bin/env python
+
+import os
+import sys
+import argparse
+from shutil import copyfile
+from subprocess import call
+from codegen.CodeTransformations import InjectDoping
+
+ext = ['.cpp', '.c', '.cc']
+
+
+def main():
+
+    # Parse input arguments
+    parser = argparse.ArgumentParser(
+                formatter_class=argparse.RawTextHelpFormatter
+                )
+    parser.add_argument('-v', '--verbose', help='increase output verbosity',
+                        action="store_true")
+    parser.add_argument('--dose', type=int, default='1',
+                        choices=[0, 1, 2, 3],
+                        help='''dose supports the following:
+    0   - Don't inject dynamic optimizations unless
+          explicitly requested by marking the loops
+          with '#pragma doping'.
+    1   - (default) Conservatively inject dynamic
+          optimizations.
+    2   - Aggressively inject dynamic optimizations.
+    3   - Inject dynamic optimizations to all loops
+          that support them.
+                        ''')
+    parser.add_argument('--optimization', type=str, default='delay_evaluation',
+                        choices=['delay_evaluation', 'compiler_pgo',
+                                 'loop_tiling'],
+                        help='''optimization supports the following:
+    delay_evaluation    - Description. (default)
+    compiler_pgo        - Description.
+    loop_tiling         - Description.
+                        ''')
+    parser.add_argument('--save-files',
+                        help='Store Doping intermediate files. Useful for'
+                        ' debugging.',
+                        action="store_true")
+    parser.add_argument('compiler_command', nargs="+",
+                        help='the command used by the compiler')
+    args = parser.parse_args()
+
+    # Initial Environment checks
+    if 'DOPING_ROOT' not in os.environ:
+        print("Error: Environment variable DOPING_ROOT not defined!")
+        exit(-1)
+
+    dopingruntimepath = os.path.join(os.environ['DOPING_ROOT'],
+                                     "bin/dopingRuntime.o")
+
+    if not os.path.isfile(dopingruntimepath):
+        print("Error: Can't find doping Runtime object file."
+              " Is doping properly compiled?")
+        exit(-1)
+
+    # Find C/C++ files in the input commnad
+    c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
+
+    # Link dl and dopingRuntime libraries (order is important!)
+    new_compiler_command = args.compiler_command
+    new_compiler_command.append(dopingruntimepath)
+    new_compiler_command.append("-ldl")
+
+    # Probably will break with more complex examples
+    flags = ' '.join(filter(lambda x: x[0] == '-' and not x == '-o',
+                     args.compiler_command))
+    flags = str(args.compiler_command[0]) + " " + flags
+
+    # Source to Source transformation of C/C++ files
+    print("Optimizing C/C++ files:")
+    for file in c_files:
+        index = args.compiler_command.index(file)
+        filename, file_extension = os.path.splitext(file)
+        newfile = filename + ".doping" + file_extension
+        copyfile(file, newfile)
+        print("- Generating code for " + file + " ->" + newfile)
+
+        print(flags)
+        transformation = Injectdoping.Injectdoping(newfile,
+                                                   flags, args.verbosity)
+        transformation.apply()
+        new_compiler_command[index] = newfile
+
+    # Compile the generated code
+    print("Compiling code:")
+    print(' '.join(new_compiler_command))
+    ret = call(list(new_compiler_command), shell=False)
+    exit(ret)
+
+
+if __name__ == "__main__":
+    main()
