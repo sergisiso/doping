@@ -1,0 +1,15 @@
+# Gitlab CI Script
+
+before_script:
+    - apt-get update -qq && apt-get install -y python-dev python-pip libclang-6.0-dev
+
+stages:
+    - test
+
+test job:
+    stage: test
+    script:
+        - pip install -e .[dev]
+        - export LD_LIBRARY_PATH=/usr/lib/llvm-6.0/lib/:$LD_LIBRARY_PATH
+        - pytest --cov-report=term --cov=src/codegen src/codegen
+
