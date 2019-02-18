@@ -5,7 +5,8 @@ FLAGS=-O2
 
 compile:
 	cd src/runtime && make
-	mv src/runtime/dopingRuntime.o bin/
+	mv src/runtime/dopingRuntime.o bin/libdoping.so
+	cp src/runtime/dopingRuntime.h bin/doping.h
 
 run: compile
 	# MultipleMatrixmult
@@ -39,7 +40,7 @@ test: compile
 	cd examples && ./run_examples.sh
 
 clean:
-	rm -rf bin/*.o *.log examples/*.log qtest qtest_original Doping.egg-info dist
+	rm -rf bin/*.o bin/*.so bin/*.h *.log examples/*.log qtest qtest_original Doping.egg-info dist
 	cd examples/helloworld && make clean
 	cd examples/imgfilt && make clean
 	cd examples/multiplematrixmult && make clean

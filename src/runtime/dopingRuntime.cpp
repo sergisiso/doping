@@ -156,15 +156,50 @@ bool link_specialized_fn(const string& libname){
     //Note that I am not calling dlclose() anywhere. Fix?
 }
 
+time_t doping_set_timer(){
+    return time(NULL) + 2;
+}
 
-bool dopingRuntime( const char * fname, const char * flags, time_t * dopingEnd, unsigned * iter, \
-        unsigned start_iter, unsigned iterspace, bool continue_loop, \
+int dopingRuntime2(dopinginfo * loop, int current_iteration, int loop_condition){
+
+    LOG(INFO) << "Entering Doping Runtime with parameters: " \
+        << " name=" << loop->name \
+        << ", flags=" << loop->flags \
+        << ", timer=" << loop->timer \
+        << ", starting_iteration=" << loop->starting_iteration \
+        << ", iteration_space=" << loop->iteration_space \
+        << ", current_iteration=" << current_iteration \
+        << ", loop_condition=" << loop_condition \
+        << ", source=" << loop->source \
+        << ", source=" << loop->stage \
+        << ", parameters=" << loop->parameter_map;
+        
+    float progress = float(current_iteration) / \
+                     (loop->iteration_space - loop->starting_iteration);
+    float threshold = 0.5;
+
+    if ( (progress < threshold) ){
+        chrono::time_point<chrono::system_clock> tstart, tend;
+        tstart = chrono::system_clock::now();
+     
+        LOG(INFO) << "Runtime Analysis of: " << loop->name ;
+        LOG(INFO) << "Loop at iteration: " << current_iteration << " (" << 100*progress \
+            << " %) (Est. Remaining time: " << 2/progress << " s)";
+        LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
+    }
+
+    loop->timer = doping_set_timer();
+    return loop_condition;
+}
+
+int dopingRuntime( const char * fname, const char * flags, time_t * dopingEnd, int * iter, \
+        int start_iter, int iterspace, int continue_loop, \
         unsigned num_runtime_ct, ...){
 
     // Get working dir
     char cwd[1024];  getcwd(cwd, sizeof(cwd));
 
-    // Compute progress through loop iteration spece
+    // Compute progress through loop iteration space
     float progress = float(*iter)/(iterspace - start_iter);
     float threshold = 0.5;
    

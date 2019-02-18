@@ -1,2 +1,2 @@
 all:
-	g++  -std=c++11 -c dopingRuntime.cpp -ldl
+	g++ -std=c++11 -c -shared -fpic dopingRuntime.cpp -ldl

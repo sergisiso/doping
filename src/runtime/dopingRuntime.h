@@ -6,14 +6,30 @@
 #define EXTERNC
 #endif
 
-EXTERNC bool dopingRuntime(
+typedef struct dopinginfo{
+    int starting_iteration;
+    int iteration_space;
+    int continue_loop;
+    time_t timer;
+    const char * source;
+    const char * name;
+    const char * flags;
+    const char * parameter_map;
+    const char * stage;
+}dopinginfo;
+
+time_t doping_set_timer();
+
+EXTERNC int dopingRuntime2(dopinginfo*, int, int);
+
+EXTERNC int dopingRuntime(
         const char * fname,
         const char * flags,
         time_t * dopingEnd,
-        unsigned * iter,
-        unsigned start_iter,
-        unsigned iterspace,
-        bool continue_loop,
+        int * iter,
+        int start_iter,
+        int iterspace,
+        int continue_loop,
         unsigned num_runtime_ct,
         ...);
 
