@@ -7,29 +7,25 @@
 #endif
 
 typedef struct dopinginfo{
-    int starting_iteration;
+    // Starting iteration value (lower end of iteration space).
+    int iteration_start;
+    // Length of the loop (upper bound - lower bound of iteration space).
     int iteration_space;
-    int continue_loop;
-    time_t timer;
+    // Source code to be rendered and re-compiled.
     const char * source;
-    const char * name;
+    // Flags to re-compile the given source code.
     const char * flags;
-    const char * parameter_map;
+    // Parameters to render the given source code.
+    const char * parameters;
+    // Arguments to give to the re-compiled function. This should be all the
+    // variables and references used inside the given source.
+    int num_arguments;
+    void * arguments;
+    // Information about 
     const char * stage;
 }dopinginfo;
 
-time_t doping_set_timer();
+//time_t doping_set_timer();
 
-EXTERNC int dopingRuntime2(dopinginfo*, int, int);
-
-EXTERNC int dopingRuntime(
-        const char * fname,
-        const char * flags,
-        time_t * dopingEnd,
-        int * iter,
-        int start_iter,
-        int iterspace,
-        int continue_loop,
-        unsigned num_runtime_ct,
-        ...);
-
+// Doping infrastructure entry point.
+EXTERNC int dopingRuntime(int, int, dopinginfo*);

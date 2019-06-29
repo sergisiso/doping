@@ -15,7 +15,7 @@
 #include <time.h>
 #include <dlfcn.h>
 
-#include "log.h"
+#include "utils/log.h"
 
 
 using namespace std;
@@ -160,39 +160,41 @@ time_t doping_set_timer(){
     return time(NULL) + 2;
 }
 
-int dopingRuntime2(dopinginfo * loop, int current_iteration, int loop_condition){
+int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * loop){
 
-    LOG(INFO) << "Entering Doping Runtime with parameters: " \
-        << " name=" << loop->name \
-        << ", flags=" << loop->flags \
-        << ", timer=" << loop->timer \
-        << ", starting_iteration=" << loop->starting_iteration \
-        << ", iteration_space=" << loop->iteration_space \
-        << ", current_iteration=" << current_iteration \
-        << ", loop_condition=" << loop_condition \
-        << ", source=" << loop->source \
-        << ", source=" << loop->stage \
-        << ", parameters=" << loop->parameter_map;
+    // If iteration space has finished, do nothing and return
+    if (!continue_condition) return continue_condition;
+    
+    LOG(INFO) << "Entering Doping Runtime with parameters: ";
+    LOG(INFO) << " current_iteration=" << current_iteration;
+    //LOG(INFO) << " name=" << loop->name;
+    LOG(INFO) << " flags=" << loop->flags;
+    //LOG(INFO) << " timer=" << loop->timer;
+    LOG(INFO) << " iteration_start=" << loop->iteration_start;
+    LOG(INFO) << " iteration_space=" << loop->iteration_space;
+    LOG(INFO) << " source=" << loop->source;
+    LOG(INFO) << " stage=" << loop->stage;
+    LOG(INFO) << " parameters=" << loop->parameters;
         
     float progress = float(current_iteration) / \
-                     (loop->iteration_space - loop->starting_iteration);
+                     (loop->iteration_space - loop->iteration_start);
     float threshold = 0.5;
 
     if ( (progress < threshold) ){
         chrono::time_point<chrono::system_clock> tstart, tend;
         tstart = chrono::system_clock::now();
      
-        LOG(INFO) << "Runtime Analysis of: " << loop->name ;
+        //LOG(INFO) << "Runtime Analysis of: " << loop->name ;
         LOG(INFO) << "Loop at iteration: " << current_iteration << " (" << 100*progress \
             << " %) (Est. Remaining time: " << 2/progress << " s)";
         LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
     }
 
-    loop->timer = doping_set_timer();
-    return loop_condition;
+    //loop->timer = doping_set_timer();
+    return continue_condition;
 }
 
-int dopingRuntime( const char * fname, const char * flags, time_t * dopingEnd, int * iter, \
+int dopingRuntime_old( const char * fname, const char * flags, time_t * dopingEnd, int * iter, \
         int start_iter, int iterspace, int continue_loop, \
         unsigned num_runtime_ct, ...){
 
