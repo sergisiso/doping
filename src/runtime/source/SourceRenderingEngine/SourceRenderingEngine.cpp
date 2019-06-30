@@ -1,6 +1,4 @@
-
-#include <string>
-#include <map>
+#include "SourceRenderingEngine.h"
 
 using namespace std;
 
