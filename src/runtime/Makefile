@@ -34,10 +34,10 @@ build:
 	@mkdir -p $(OBJ_DIR)
 
 test: source/unit-test.cpp ${TESTOBJECTS}
-	${CXX} ${CXXFLAGS} $(INCLUDE) ${TESTOBJECTS} $< -o run_tests
-	./run_tests
+	${CXX} ${CXXFLAGS} $(INCLUDE) ${TESTOBJECTS} $< -o $(BUILD)/run_tests
+	$(BUILD)/run_tests
 
 
 
 clean:
-	-@rm -rvf build
+	-@rm -rvf $(BUILD)
