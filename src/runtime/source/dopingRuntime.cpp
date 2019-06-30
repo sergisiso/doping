@@ -15,20 +15,21 @@
 #include <time.h>
 #include <dlfcn.h>
 
-#include "utils/log.h"
+#include "log.h"
+#include "DynamicFunction.h"
 
 
 using namespace std;
 
+/*
 string specialize_function(const string& fname, int num_parameters, ...);
 bool link_specialized_fn(const string& libname);
 typedef void (*pf)(va_list);
 pf function;
 
-/*
-Converts file name to a specialized filename using runtime values one e.g.:
-/path/file.cc to /path/file.10.33.cc
-*/
+
+// Converts file name to a specialized filename using runtime values one e.g.:
+// /path/file.cc to /path/file.10.33.cc
 string get_specialized_filename(const string& fname, int num_parameters, va_list args){
     string newfname = fname.substr(0,fname.find_last_of("."));
     string extension = fname.substr(fname.find_last_of("."));
@@ -79,12 +80,12 @@ string specialize_function(const string& fname, int num_parameters, va_list args
         // Replace placeholders on the file contents for the runtime-constant
         const string placeholder = "dopingPLACEHOLDER_" + new_name;
         size_t index;
-        /*new_value.find(placeholder);
-        if (index != std::string::npos){
-            LOG(ERROR) << "String " << new_value << " includes " \
-                << placeholder << ", this will generate and infinite substitution sequence.";
-            exit(-1);
-        }*/
+        //new_value.find(placeholder);
+        //if (index != std::string::npos){
+        //    LOG(ERROR) << "String " << new_value << " includes " \
+        //        << placeholder << ", this will generate and infinite substitution sequence.";
+        //    exit(-1);
+        //}
         while(true){
             index = content.find(placeholder);
             if (index == std::string::npos) break;
@@ -154,12 +155,13 @@ bool link_specialized_fn(const string& libname){
     }
 	LOG(DEBUG) << "Loop symbol resolved";
     //Note that I am not calling dlclose() anywhere. Fix?
+    return true;
 }
 
 time_t doping_set_timer(){
     return time(NULL) + 2;
 }
-
+*/
 int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * loop){
 
     // If iteration space has finished, do nothing and return
@@ -188,12 +190,17 @@ int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * lo
         LOG(INFO) << "Loop at iteration: " << current_iteration << " (" << 100*progress \
             << " %) (Est. Remaining time: " << 2/progress << " s)";
         LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
+
+        DynamicFunction df = DynamicFunction(loop->source, loop->parameters);
+        df.somefunc();
+
     }
 
     //loop->timer = doping_set_timer();
     return continue_condition;
 }
 
+/*
 int dopingRuntime_old( const char * fname, const char * flags, time_t * dopingEnd, int * iter, \
         int start_iter, int iterspace, int continue_loop, \
         unsigned num_runtime_ct, ...){
@@ -260,4 +267,5 @@ int dopingRuntime_old( const char * fname, const char * flags, time_t * dopingEn
     }
 
 }
+*/
 

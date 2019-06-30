@@ -1,4 +1,3 @@
-#include "catch.hpp"
 
 #include <string>
 #include <map>
@@ -24,7 +23,7 @@ struct ParseException : public exception {
 
 string render(const string& source, const map<string, string>& context){
 
-    int cursor = 0;
+    unsigned int cursor = 0;
     string output;
 
     // The final capacity of the output string will be probably bigger than
@@ -123,6 +122,8 @@ string render(const string& source, const map<string, string>& context){
     return output;
 }
 
+#ifdef UNIT_TEST
+#include "catch.hpp"
 
 SCENARIO("Rendering a simple strings") {
 
@@ -238,4 +239,4 @@ TEST_CASE("Test rendering C source code") {
         REQUIRE(render(original, context) == expected);
     }
 }
-
+#endif
