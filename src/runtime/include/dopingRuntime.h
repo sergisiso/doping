@@ -13,16 +13,16 @@ typedef struct dopinginfo{
     int iteration_space;
     // Source code to be rendered and re-compiled.
     const char * source;
-    // Flags to re-compile the given source code.
-    const char * flags;
+    // Command re-compile the given source code.
+    const char * compiler_command;
     // Parameters to render the given source code.
     const char * parameters;
     // Arguments to give to the re-compiled function. This should be all the
     // variables and references used inside the given source.
     int num_arguments;
     void * arguments;
-    // Information about 
-    const char * stage;
+    // Information about the dynamic state?
+    // const char * stage;
 }dopinginfo;
 
 //time_t doping_set_timer();

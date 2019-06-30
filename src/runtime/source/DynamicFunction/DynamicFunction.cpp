@@ -8,9 +8,16 @@
 #include <map>
 #include <sstream>
 #include <dlfcn.h>
+#include <stdio.h>
 
 
 using namespace std;
+
+struct DynamicOptimizationException : public exception {
+    const char * what () const throw () {
+        return "Dynamic Optimization Exception";
+    }
+};
 
 string run_shell(const string& cmd) {
     char buffer[128];
@@ -36,14 +43,14 @@ DynamicFunction::DynamicFunction(const string& source,
 
     // Could use /tmp but it may be system-specific and
     // could be a security issue (it is a shared folder).
-    string filename = "test.c";
+    string filename = "./doping_tmp_file.c";
 
     // Open a temporal file (is it possible to compile from a stream instead?)
     ofstream tmpfile(filename, ofstream::out | ofstream::trunc);
     if( tmpfile.fail() || !tmpfile.is_open()){
         LOG(ERROR) << " Error opening" << filename << "file: (errno" \
             << errno <<") " << strerror(errno);
-        exit(1);
+        throw DynamicOptimizationException();
     }
 
     // Transform comma-separated list into parameters map
@@ -58,41 +65,55 @@ DynamicFunction::DynamicFunction(const string& source,
             string key = stringpair.substr(0,pos);
             string value = stringpair.substr(pos + 1);
             parmap[key] = value;
-        }else{
-            throw "Error: No separator ':' found!";
-        }
+        } /*else{
+            LOG(ERROR) << " Failed to parse parameters.";
+            throw DynamicOptimizationException();
+        }*/
     }
 
     // Render the source with the given parameters
     string newsource = render(source, parmap);
     this->testbuffer.append(newsource);
+    LOG(INFO) << " Rendered source = " << newsource;
+
+    // NOTE: An option here would be to encapsulate rendered source
+    // in a function that passes parameters and functions used?
+    // Delegate the responsability to the passed source for now.
 
     // Write the output into the temporal file 
     tmpfile << newsource;
     tmpfile.close();
-    LOG(INFO) << " Rendered new source into:" << filename;
+    LOG(INFO) << " Rendered new source into: " << filename;
 
     // Compile with -fPIC and -shared flags in addition to the original ones
-    string libname = "test.so";
+    string libname = "./doping_tmp_object.so";
     string command = compilercmd + " -fPIC -shared " + filename + " -o " + libname;
     LOG(DEBUG) << "Compiling: " << command;
 	string result = run_shell(command);
     LOG(DEBUG) << result;
+    if ( remove(filename.c_str())!= 0 ){
+        LOG(ERROR) << "Could not delete the file:" << filename;
+    }
+
+
 
     // Link new object file to current executable
     void * lib = dlopen(libname.c_str(), RTLD_NOW);
     if (!lib) {
-        LOG(ERROR) << "Failed to open library .so: \n" << dlerror();
-        exit(3);
+        LOG(ERROR) << " Failed to open library .so: \n" << dlerror();
+        throw DynamicOptimizationException();
     }
 	LOG(DEBUG) << libname << " linked!";
-    this->functionPointer = (function_prototype) dlsym(lib, "loop");
+    this->functionPointer = (function_prototype) dlsym(lib, "function");
     if(!this->functionPointer){
-        LOG(ERROR) << "Failed to locate function: \n" << dlerror();
-        exit(2);
+        LOG(ERROR) << " Failed to locate function: \n" << dlerror();
+        throw DynamicOptimizationException();
     }
-	LOG(DEBUG) << "Loop symbol resolved";
+	LOG(DEBUG) << " Loop symbol resolved";
 
+    if ( remove(libname.c_str())!= 0 ){
+        LOG(ERROR) << "Could not delete the file:" << libname;
+    }
     // Note that I am not calling dlclose() anywhere. Fix?
     // I can delete test.c and test.so here?
 }
@@ -107,9 +128,8 @@ DynamicFunction::~DynamicFunction(){
 
 }
 
-int DynamicFunction::somefunc(){
-
-    return 0; 
+int DynamicFunction::run(){
+    return this->functionPointer();
 }
 
 

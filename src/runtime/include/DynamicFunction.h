@@ -3,7 +3,11 @@
 
 #include <string>
 
-typedef void (*function_prototype)(va_list);
+
+// Function pointer prototpye:
+//   - Input argument is a struct with references to all access values.
+//   - Return value is a bool specifying if the loop should still continue.
+typedef int (*function_prototype)();
 
 class DynamicFunction {
 
@@ -17,7 +21,7 @@ class DynamicFunction {
                 const std::string& parameters,
                 const std::string& compilercmd);
         ~DynamicFunction();
-        int somefunc();
+        int run();
         std::string getTestBuffer(){return testbuffer;}
 };
 
