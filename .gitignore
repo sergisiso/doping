@@ -1,12 +1,16 @@
 **/*.swp
 **/*.exe
+**/*.egg-info
 **/*.pyc
 **/*.jake.c
 **/*.jake.cc
 **/*.jake.cpp
+**/*.log
+**/*.output
 **/__pycache__
 sourceme
 tags
+doc/build
 **/**/__pycache__/
 **/**/.cache
 **/.cache

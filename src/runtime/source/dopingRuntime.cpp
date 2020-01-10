@@ -21,15 +21,15 @@ int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * lo
     if (!continue_condition) return continue_condition;
     
     LOG(INFO) << "Entering Doping Runtime with parameters: ";
-    LOG(INFO) << " current_iteration = " << current_iteration;
-    //LOG(INFO) << " name=" << loop->name;
-    LOG(INFO) << " compiler_command =  " << loop->compiler_command;
-    //LOG(INFO) << " timer=" << loop->timer;
-    LOG(INFO) << " iteration_start =   " << loop->iteration_start;
-    LOG(INFO) << " iteration_space =   " << loop->iteration_space;
-    LOG(INFO) << " source = " << loop->source;
-    //LOG(INFO) << " stage =             " << loop->stage;
-    LOG(INFO) << " parameters =        " << loop->parameters;
+    LOG(INFO) << " - current_iteration = " << current_iteration;
+    //LOG(INFO) << " - name=" << loop->name;
+    LOG(INFO) << " - compiler_command = " << loop->compiler_command;
+    //LOG(INFO) << " - timer=" << loop->timer;
+    LOG(INFO) << " - iteration_start = " << loop->iteration_start;
+    LOG(INFO) << " - iteration_space = " << loop->iteration_space;
+    LOG(INFO) << " - source: " << loop->source;
+    //LOG(INFO) << " - stage = " << loop->stage;
+    LOG(INFO) << " - parameters = " << loop->parameters;
         
     float progress = float(current_iteration) / \
                      (loop->iteration_space - loop->iteration_start);
@@ -47,12 +47,12 @@ int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * lo
         DynamicFunction * df;
 
         try {
-            df = new DynamicFunction(loop->source,
-                                 loop->parameters,
-                                 loop->compiler_command);
+            df = new DynamicFunction(loop->source, loop->parameters);
+            df->compile_and_link(loop->compiler_command);
         } catch(exception& e){
             LOG(ERROR) << " Doping failed to dynamically optimize function. "
                 "Continuing with baseline code.";
+            return continue_condition;
         }
         tend = chrono::system_clock::now();
         chrono::duration<double> tduration = tend - tstart;

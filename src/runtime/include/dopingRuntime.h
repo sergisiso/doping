@@ -28,4 +28,7 @@ typedef struct dopinginfo{
 //time_t doping_set_timer();
 
 // Doping infrastructure entry point.
-EXTERNC int dopingRuntime(int, int, dopinginfo*);
+EXTERNC int dopingRuntime(
+    int current_iteration,
+    int continue_condition,
+    dopinginfo * loop);

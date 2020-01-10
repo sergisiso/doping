@@ -12,17 +12,17 @@ typedef int (*function_prototype)();
 class DynamicFunction {
 
     function_prototype functionPointer;
-    //hash<string> functionID;
-    std::string testbuffer;
+    std::string rendered_source;
 
     public:
         DynamicFunction(
                 const std::string& source,
-                const std::string& parameters,
-                const std::string& compilercmd);
+                const std::string& parameters);
         ~DynamicFunction();
+        void compile_and_link(const std::string& compilercmd);
+        std::string get_rendered_source(){return this->rendered_source;}
+        function_prototype get_fp(){return this->functionPointer;}
         int run();
-        std::string getTestBuffer(){return testbuffer;}
 };
 
 #endif

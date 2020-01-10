@@ -1,5 +1,8 @@
 #include "SourceRenderingEngine.h"
 
+#include "log.h"
+#include <ctype.h>
+
 using namespace std;
 
 // NOTE: If this rendering gets to expensive for executing at run-time, it can
@@ -43,6 +46,7 @@ string render(const string& source, const map<string, string>& context){
             // Get <VARIALBE>
             string word;
             while(source[cursor] != ' '){
+                if (!isalnum(source[cursor])) throw ParseException();
                 word.push_back(source[cursor]);
                 cursor++;
             }
@@ -123,7 +127,7 @@ string render(const string& source, const map<string, string>& context){
 #ifdef UNIT_TEST
 #include "catch.hpp"
 
-SCENARIO("Rendering a simple strings") {
+SCENARIO("Rendering simple strings") {
 
     GIVEN("An empty context map"){
         map<string, string> context;
@@ -212,6 +216,14 @@ SCENARIO("Rendering a simple strings") {
                 REQUIRE(render(original, context) == original);
                 REQUIRE(render(original2, context) == original2);
             }
+        }
+        WHEN("String substitution variable without ending space"){
+            string original = "string /*<DOPING N>*/ string";
+            REQUIRE_THROWS_AS(render(original, context), ParseException);
+        }
+        WHEN("String substitution variable with invalid characters"){
+            string original = "string /*<DOPING N< >*/ string";
+            REQUIRE_THROWS_AS(render(original, context), ParseException);
         }
     }
 }
