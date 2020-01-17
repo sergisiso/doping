@@ -50,6 +50,12 @@ class InjectDoping (CodeTransformation):
             os.remove(newfname)
         dopingfile = Rewriter(newfname)
 
+        # Include doping runtime
+        self._buffer.goto_line(1)
+        include_string = "#include \"doping.h\""
+        if self._buffer.get_content() != include_string:
+            self._buffer.insert(include_string)
+
         # Comment old code
         self._buffer.goto_original_line(node.get_start())
         self._buffer.insert("//  ---- CODE TRANSFORMED BY doping ----")
@@ -60,34 +66,47 @@ class InjectDoping (CodeTransformation):
 
         # Generate new version of the loop
         self._buffer.insert("//  --------- New version: ----------")
-        timevar = "dopingEnd"+str(LoopID)
-        rtvar = "dopingRuntimeVal_"+str(LoopID)
-        self._buffer.insert("time_t "+timevar+";")
-        self._buffer.insert("char " + rtvar + "[" +
-                            str(len(runtime_constants))+"][20];")
-        for idx, var in enumerate(runtime_constants):
-            self._buffer.insert("sprintf(" + rtvar + "[" + str(idx) +
-                                "], \"%d\" ," + var.displayname + ");")
-        self._buffer.insert(node.initialization_string()+";")
-        self._buffer.insert("while ( dopingRuntime( \"" + newfname +
-                            "\"")
-        self._buffer.insertpl(", \"" + self.flags_string + "\"")
-        self._buffer.insertpl(", &" + timevar)
-        self._buffer.insertpl(", &" + node.cond_variable())
-        self._buffer.insertpl(", " + node.cond_starting_value() +
-                              ", " + node.cond_end_value())
-        self._buffer.insertpl(", " + node.end_condition_string() + ", " +
-                              str(len(runtime_constants)))
-        # Add tuples of name and values of the runtime
-        # constant variables
-        # all in string format
-        for idx, var in enumerate(runtime_constants):
-            self._buffer.insertpl(", \"" + var.displayname + "\"" +
-                                  ", "+rtvar+"[" + str(idx) + "]")
+        # 1) Generate the dopinginfo object
+        self._buffer.insert("dopinginfo info" + str(LoopID) + " = {")
+        self._buffer.insert("    .iteration_start = " +
+                            node.cond_starting_value() + ",")
+        self._buffer.insert("    .iteration_space = " +
+                            node.cond_end_value() + ",")
+        self._buffer.insert("    .source = " + "\" \"" + ",")
+        self._buffer.insert("    .compiler_command = " + "\" \"" + ",")
+        self._buffer.insert("    .parameters = " + "\" \"" + ",")
+        self._buffer.insert("};")
+        # self._buffer.insertpl(", \"" + self.flags_string + "\"")
 
-        self._buffer.insertpl(", " + node.cond_variable())
-        for var in pointers:
-            self._buffer.insertpl(", " + var.displayname)
+        if False:  # Old code which I may need
+            timevar = "dopingEnd"+str(LoopID)
+            rtvar = "dopingRuntimeVal_"+str(LoopID)
+            self._buffer.insert("time_t "+timevar+";")
+            self._buffer.insert("char " + rtvar + "[" +
+                                str(len(runtime_constants))+"][20];")
+            for idx, var in enumerate(runtime_constants):
+                self._buffer.insert("sprintf(" + rtvar + "[" + str(idx) +
+                                    "], \"%d\" ," + var.displayname + ");")
+
+        # 2) Loop starting value
+        self._buffer.insert(node.initialization_string()+";")
+
+        # 3) Doping Runtime call
+        self._buffer.insert("while ( dopingRuntime(" +
+                            node.cond_variable() + ", " +
+                            node.end_condition_string() + ", " +
+                            "&info" + str(LoopID))
+        if False:
+            # Add tuples of name and values of the runtime
+            # constant variables
+            # all in string format
+            for idx, var in enumerate(runtime_constants):
+                self._buffer.insertpl(", \"" + var.displayname + "\"" +
+                                      ", "+rtvar+"[" + str(idx) + "]")
+
+            self._buffer.insertpl(", " + node.cond_variable())
+            for var in pointers:
+                self._buffer.insertpl(", " + var.displayname)
 
         self._buffer.insertpl(")){")
         self._buffer.increase_indexation()
@@ -96,7 +115,8 @@ class InjectDoping (CodeTransformation):
         self._buffer.insert("")
         self._buffer.insert("// Unmodified loop")
         self._buffer.insert("for(; (" + node.end_condition_string())
-        self._buffer.insertpl(" ) && time(NULL) < "+timevar+";")
+        # self._buffer.insertpl(" ) && time(NULL) < "+timevar+";")
+        self._buffer.insertpl(" );")
         self._buffer.insertpl(node.increment_string() + ")")
         self._buffer.increase_indexation()
         self._buffer.insert(node.body_string())
@@ -153,7 +173,7 @@ class InjectDoping (CodeTransformation):
 
         dopingfile.insert("}}")
 
-        dopingfile.save()  # Not to confuse with 'file' which
+        # dopingfile.save()  # Not to confuse with 'file' which
         # is saved by the superclass
         print("")
 
