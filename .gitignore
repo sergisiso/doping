@@ -2,9 +2,9 @@
 **/*.exe
 **/*.egg-info
 **/*.pyc
-**/*.jake.c
-**/*.jake.cc
-**/*.jake.cpp
+**/*.doping.c
+**/*.doping.cc
+**/*.doping.cpp
 **/*.log
 **/*.output
 **/__pycache__

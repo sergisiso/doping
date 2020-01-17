@@ -52,7 +52,7 @@ def main():
         exit(-1)
 
     dopingruntimepath = os.path.join(os.environ['DOPING_ROOT'],
-                                     "bin/dopingRuntime.o")
+                                     "bin/libdoping.so")
 
     if not os.path.isfile(dopingruntimepath):
         print("Error: Can't find doping Runtime object file."
@@ -64,6 +64,7 @@ def main():
 
     # Link dl and dopingRuntime libraries (order is important!)
     new_compiler_command = args.compiler_command
+    new_compiler_command.append("-I" + os.environ['DOPING_ROOT'] + "/bin")
     new_compiler_command.append(dopingruntimepath)
     new_compiler_command.append("-ldl")
 
@@ -74,16 +75,15 @@ def main():
 
     # Source to Source transformation of C/C++ files
     print("Optimizing C/C++ files:")
-    for file in c_files:
-        index = args.compiler_command.index(file)
-        filename, file_extension = os.path.splitext(file)
+    for originalfile in c_files:
+        index = args.compiler_command.index(originalfile)
+        filename, file_extension = os.path.splitext(originalfile)
         newfile = filename + ".doping" + file_extension
-        copyfile(file, newfile)
-        print("- Generating code for " + file + " ->" + newfile)
+        copyfile(originalfile, newfile)
+        print("- Generating code for " + originalfile + " -> " + newfile)
 
         print(flags)
-        transformation = Injectdoping.Injectdoping(newfile,
-                                                   flags, args.verbosity)
+        transformation = InjectDoping.InjectDoping(originalfile, newfile, flags)
         transformation.apply()
         new_compiler_command[index] = newfile
 

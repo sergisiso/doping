@@ -4,7 +4,7 @@ CFLAGS = -O3 -march=native
 
 ITERATIONS=$(shell seq 1000 1000 50000)
 
-DOPING=${DOPING_ROOT}/dope
+DOPING=${DOPING_ROOT}/bin/dope
 
 all: cversion mopt doping
 

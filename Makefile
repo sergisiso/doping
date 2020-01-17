@@ -5,8 +5,8 @@ FLAGS=-O2
 
 compile:
 	cd src/runtime && make
-	mv src/runtime/dopingRuntime.o bin/libdoping.so
-	cp src/runtime/dopingRuntime.h bin/doping.h
+	cp src/runtime/build/libdoping.so bin/libdoping.so
+	cp src/runtime/include/dopingRuntime.h bin/doping.h
 
 run: compile
 	# MultipleMatrixmult

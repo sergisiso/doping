@@ -1,7 +1,6 @@
 import os
 from subprocess import call
 from codegen.Rewriter import Rewriter
-from codegen.AST import ASTNode
 from codegen.CodeTransformations.CodeTransformation import CodeTransformation
 
 

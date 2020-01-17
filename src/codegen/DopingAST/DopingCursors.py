@@ -160,7 +160,7 @@ class DopingCursorBase(Cursor):
     def _find(self, searchtype, outermostonly=False, exclude_headers=True):
         if exclude_headers:
             if self.location.file is not None:
-                if self.location.file.name.endswith(('.h', '.hpp')):
+                if self.location.file.name.endswith(('.h', '.hpp', '.tcc')):
                     return  # Does not yield anything
         if (self.kind == searchtype):
             yield self
