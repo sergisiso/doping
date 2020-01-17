@@ -3,7 +3,7 @@ CC = g++
 CFLAGS = -O3 -march=native
 ITERATIONS=$(shell seq 10 10 100)
 
-DOPING=${DOPING_ROOT}/src/doping.py
+DOPING=${DOPING_ROOT}/bin/dope
 
 
 all: cversion doping
@@ -15,7 +15,7 @@ runcversion:
 	./helloworld.exe | tee cversion.output
 
 doping: helloworld.c
-	python2 $(DOPING) -- $(CC) $(CFLAGS) helloworld.c -o hw.dopingversion.exe
+	$(DOPING) -- $(CC) $(CFLAGS) helloworld.c -o hw.dopingversion.exe
 
 rundoping:
 	./hw.dopingversion.exe | tee dopingversion.output

@@ -4,7 +4,7 @@ CFLAGS = -O3 -march=native
 
 ITERATIONS=$(shell seq 1000 1000 50000)
 
-DOPING=${DOPING_ROOT}/src/doping.py
+DOPING=${DOPING_ROOT}/dope
 
 all: cversion mopt doping
 
@@ -15,7 +15,7 @@ runcversion:
 	./mm.cversion.exe 50 10000 | tee cversion.output
 
 doping: mm.cc
-	python $(DOPING) -- $(CC) $(CFLAGS) mm.cc -o mm.dopingversion.exe
+	$(DOPING) -- $(CC) $(CFLAGS) mm.cc -o mm.dopingversion.exe
 
 rundoping:
 	./mm.dopingversion.exe 50 10000 | tee dopingversion.output
