@@ -123,6 +123,14 @@ class Rewriter:
         self._content[self._cursor - 2] = (self._content[self._cursor - 2] +
                                            " " + string)
 
+    def insertstr(self, string):
+        '''
+        Insert string inside a C style literal like: "<string>\n"
+
+        :param string: String to insert.
+        '''
+        self.insert("\"" + string + "\\n\"")
+
     def delete(self):
         '''
         Delete current cursor line contents.

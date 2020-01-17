@@ -48,7 +48,6 @@ class InjectDoping (CodeTransformation):
         print("    Writing new version of the loop at " + newfname)
         if os.path.isfile(newfname):
             os.remove(newfname)
-        dopingfile = Rewriter(newfname)
 
         # Include doping runtime
         self._buffer.goto_line(1)
@@ -72,7 +71,64 @@ class InjectDoping (CodeTransformation):
                             node.cond_starting_value() + ",")
         self._buffer.insert("    .iteration_space = " +
                             node.cond_end_value() + ",")
-        self._buffer.insert("    .source = " + "\" \"" + ",")
+        self._buffer.insert("    .source = " + r'''"\n"''')
+
+        # Dynamic versrion of the code
+
+        # Write function definition with pointers and written_scalars
+        for include in node.find_file_includes():
+            self._buffer.insertstr(include[:-1])  # [:-1] to remove the \n
+        self._buffer.insertstr("#include <cstdarg>")
+        self._buffer.insertstr("#include <stdio.h>")
+
+        # Write local functions called from the body loop.
+        for f in node.function_call_analysis():
+            self._buffer.insert(" ".join([x.spelling for x in
+                                          f.get_definition().get_tokens()]))
+
+        self._buffer.insertstr(r"extern \"C\" void loop(va_list args){")
+
+        # Get loop start condition
+        self._buffer.insertstr("unsigned lstart = va_arg(args, unsigned);")
+
+        # Get pointers
+        for a in pointers:
+            atype = a.type.spelling
+            self._buffer.insertstr(atype + " " + a.displayname +
+                                   " = va_arg(args, " + atype + ");")
+            # self._buffer.insert("double *__restrict__ " +
+            # a.displayname + " = va_arg(args, " \
+
+        # Declare additional vars
+        for v in written_scalars:
+            vtype = v.type.spelling
+            self._buffer.insertstr(vtype + " " + v.displayname + ";")
+
+        # Write delayed evaluated variables
+        for v in runtime_constants:
+            self._buffer.insertstr("const " + v.type.spelling + " " +
+                                   v.displayname +
+                                   " = dopingPLACEHOLDER_" +
+                                   v.displayname + ";")
+
+        # if(self.verbosity_level==4):
+        # self._buffer.insert("printf(\"Executing doping" +
+        # " optimized version. Restart from iteration" +
+        # " %d\\n \", lstart);")
+
+        self._buffer.insertstr("for( unsigned " + node.cond_variable()
+                               + " = lstart;" + node.end_condition_string()
+                               + ";" + node.increment_string() + ")")
+
+        for line in node.body_string().split("\n"):
+            self._buffer.insertstr(line)
+
+        self._buffer.insertstr("}}")
+
+        self._buffer.insert(r'''"}\n",''')
+
+        # Continue dopinginfo object
+
         self._buffer.insert("    .compiler_command = " + "\" \"" + ",")
         self._buffer.insert("    .parameters = " + "\" \"" + ",")
         self._buffer.insert("};")
@@ -124,58 +180,6 @@ class InjectDoping (CodeTransformation):
         self._buffer.decrease_indexation()
         self._buffer.insert("}} //end while loop")
         self._buffer.insert("")
-
-        # Write function definition with pointers and written_scalars
-        for include in node.find_file_includes():
-            dopingfile.insert(include)
-        dopingfile.insert("#include <cstdarg>")
-        dopingfile.insert("#include <stdio.h>")
-
-        # Write local functions called from the body loop.
-        for f in node.function_call_analysis():
-            dopingfile.insert(" ".join([x.spelling for x in
-                                        f.get_definition().get_tokens()]))
-
-        dopingfile.insert("extern \"C\" void loop(va_list args){")
-
-        # Get loop start condition
-        dopingfile.insert("unsigned lstart = va_arg(args, unsigned);")
-
-        # Get pointers
-        for a in pointers:
-            atype = a.type.spelling
-            dopingfile.insert(atype + " " + a.displayname +
-                              " = va_arg(args, " + atype + ");")
-            # dopingfile.insert("double *__restrict__ " +
-            # a.displayname + " = va_arg(args, " \
-
-        # Declare additional vars
-        for v in written_scalars:
-            vtype = v.type.spelling
-            dopingfile.insert(vtype + " " + v.displayname + ";")
-
-        # Write delayed evaluated variables
-        for v in runtime_constants:
-            dopingfile.insert("const " + v.type.spelling + " " +
-                              v.displayname +
-                              " = dopingPLACEHOLDER_" +
-                              v.displayname + ";")
-
-        # if(self.verbosity_level==4):
-        # dopingfile.insert("printf(\"Executing doping" +
-        # " optimized version. Restart from iteration" +
-        # " %d\\n \", lstart);")
-
-        dopingfile.insert("for( unsigned " + node.cond_variable()
-                          + " = lstart;" + node.end_condition_string()
-                          + ";" + node.increment_string() + ")" +
-                          node.body_string())
-
-        dopingfile.insert("}}")
-
-        # dopingfile.save()  # Not to confuse with 'file' which
-        # is saved by the superclass
-        print("")
 
     def _post_transformation(self):
         # Add necessary includes
