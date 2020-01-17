@@ -39,17 +39,16 @@ class DopingCursorBase(Cursor):
                 for x in super(DopingCursorBase, self).get_children()]
 
     def find_file_includes(self):
-        #return filter(self.is_from_file, self.root.find_includes())
-
-        #Clang implementation above does not work! FIX! Meanwhile ugly implementation below.
+        # return filter(self.is_from_file, self.root.find_includes())
+        # Clang implementation above does not work! FIX! Meanwhile ugly
+        # implementation below.
         includes = []
-        with open(str(self.location.file),'r') as f:
+        with open(str(self.location.file), 'r') as f:
             for line in f:
-                if line.startswith("#include"): includes.append(line)
+                if line.startswith("#include"):
+                    includes.append(line)
 
         return includes
-
-
 
     ############################
     # HELPER METHODS
@@ -432,15 +431,15 @@ class ForCursor (DopingCursorBase):
                (access.displayname not in written_dp) and \
                (access.displayname not in arrays_dp) and \
                (access.displayname != ''):
-                    if access.type_is_scalar() and \
-                       (access.get_children()[0].kind !=
-                       CursorKind.CALL_EXPR):
-                        ru_dp.append(access.displayname)
-                        runtime_constants.append(access)
-                    if access.type_is_pointer() and \
-                       (access.get_children()[0].kind !=
-                       CursorKind.CALL_EXPR):
-                        arrays.append(access)
-                        arrays_dp.append(access.displayname)
+                if access.type_is_scalar() and \
+                   (access.get_children()[0].kind !=
+                   CursorKind.CALL_EXPR):
+                    ru_dp.append(access.displayname)
+                    runtime_constants.append(access)
+                if access.type_is_pointer() and \
+                   (access.get_children()[0].kind !=
+                   CursorKind.CALL_EXPR):
+                    arrays.append(access)
+                    arrays_dp.append(access.displayname)
 
         return local_vars, arrays, written_scalars, runtime_constants
