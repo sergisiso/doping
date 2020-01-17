@@ -31,4 +31,5 @@ typedef struct dopinginfo{
 EXTERNC int dopingRuntime(
     int current_iteration,
     int continue_condition,
-    dopinginfo * loop);
+    dopinginfo * loop,
+    ...);

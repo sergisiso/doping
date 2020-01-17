@@ -122,10 +122,10 @@ DynamicFunction::~DynamicFunction(){
 
 }
 
-int DynamicFunction::run(){
+int DynamicFunction::run(int current_iteration, va_list arguments){
     if (this->functionPointer == NULL)
         throw std::runtime_error("Function pointer is not initialized");
-    return this->functionPointer();
+    return this->functionPointer(current_iteration, arguments);
 }
 
 
@@ -158,7 +158,7 @@ SCENARIO("Simple source with no parameters") {
         }
         WHEN("Exectute the function compiled  with gcc"){
             df.compile_and_link("gcc");
-            int retval = df.run();
+            int retval = df.run(0, NULL);
             THEN ("it links a new function into the functionpointer"){
                 REQUIRE(df.get_fp() != NULL);
                 REQUIRE(retval == 10);
@@ -207,7 +207,7 @@ SCENARIO("Simple source with 2 parameters") {
         }
         WHEN("Exectute the function compiled  with gcc"){
             df.compile_and_link("gcc");
-            int retval = df.run();
+            int retval = df.run(0, NULL);
             THEN ("it links a new function into the functionpointer"){
                 REQUIRE(df.get_fp() != NULL);
                 REQUIRE(retval == 9);
@@ -219,7 +219,7 @@ SCENARIO("Simple source with 2 parameters") {
         WHEN("Exectute the function compiled  with gcc"){
             DynamicFunction df(source, parameters);
             df.compile_and_link("gcc");
-            int retval = df.run();
+            int retval = df.run(0, NULL);
             THEN ("it links a new function and returns the correct value"){
                 REQUIRE(df.get_fp() != NULL);
                 REQUIRE(retval == 9);

@@ -15,7 +15,8 @@
 
 using namespace std;
 
-int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * loop){
+int dopingRuntime(int current_iteration, int continue_condition,
+                  dopinginfo * loop, ...){
 
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
@@ -40,7 +41,8 @@ int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * lo
         tstart = chrono::system_clock::now();
      
         //LOG(INFO) << "Runtime Analysis of: " << loop->name ;
-        LOG(INFO) << "Loop at iteration: " << current_iteration << " (" << 100*progress \
+        LOG(INFO) << "Loop at iteration: " << current_iteration << " (" \
+            << 100*progress \
             << " %) (Est. Remaining time: " << 2/progress << " s)";
         LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
         
@@ -56,9 +58,14 @@ int dopingRuntime(int current_iteration, int continue_condition, dopinginfo * lo
         }
         tend = chrono::system_clock::now();
         chrono::duration<double> tduration = tend - tstart;
-        LOG(INFO) << "Compilation and linking took: " << tduration.count() << " seconds.";
+        LOG(INFO) << "Compilation and linking took: " << tduration.count() \
+            << " seconds.";
 
-        int retval = df->run();
+        va_list arguments;
+        va_start(arguments, loop);
+        int retval = df->run(current_iteration, arguments);
+        va_end(arguments);
+
         delete df;
         return retval;
     }
