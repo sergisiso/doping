@@ -3,6 +3,12 @@ all: compile
 CC=g++
 FLAGS=-O2
 
+.PHONY: dependencies compile test clean
+
+dependencies:
+	pip install -e .[dev]
+	git submodule init && git submodule update
+
 compile:
 	cd src/runtime && make
 	cp src/runtime/build/libdoping.so bin/libdoping.so
