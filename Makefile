@@ -37,10 +37,13 @@ test: compile
 	cd examples && ./run_examples.sh
 
 clean:
+	rm -rf ./src/clang/__pycache__ ./src/codegen/CodeTransformations/__pycache__
+	rm -rf ./src/codegen/DopingAST/__pycache__ ./src/codegen/__pycache__ ./src/codegen/test/__pycache__
 	rm -rf bin/*.o bin/*.so bin/*.h *.log examples/*.log qtest qtest_original Doping.egg-info dist
 	cd examples/helloworld && make clean
 	cd examples/imgfilt && make clean
 	cd examples/multiplematrixmult && make clean
 	cd examples/skewedgaussseidel && make clean
 	cd doc && make clean
+	cd src/runtime && make clean
 
