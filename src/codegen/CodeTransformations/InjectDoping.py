@@ -41,13 +41,8 @@ class InjectDoping (CodeTransformation):
                              written_scalars, runtime_constants)
         if len(runtime_constants) < 1:
             return False
-
-        # Create new file for the specific loop
-        fname, fext = os.path.splitext(self._outputfile)
-        newfname = fname + ".loop" + str(LoopID) + fext
-        print("    Writing new version of the loop at " + newfname)
-        if os.path.isfile(newfname):
-            os.remove(newfname)
+        else:
+            print("    Creating dynamically optimized version of the loop.")
 
         # Include doping runtime
         self._buffer.goto_line(1)
