@@ -30,15 +30,16 @@ execute () {
 for testdir in helloworld multiplematrixmult imgfilt skewedgaussseidel
 #for testdir in helloworld matrixmult
 do
-    echo "  [[[     Running $testdir TEST     ]]]"
+    echo "[[[     Running $testdir TEST     ]]]" | tee -a $LOGFILE
+    echo "==================================================" | tee -a $LOGFILE
     echo ""
     cd $DIR/$testdir
-    execute "  * Cleaning possible early results/binaries " "make clean"
-    execute "  * Compiling native code: " "make cversion"
-    execute "  * Running native code: " "make runcversion"
-    execute "  * Compiling doping code: " "make doping"
-    execute "  * Running doping code: " "make rundoping"
-    execute "  * Compare native and doping outputs: " "make compare"
+    execute "> Cleaning possible early results/binaries " "make clean"
+    execute "> Compiling native code: " "make cversion"
+    execute "> Running native code: " "make runcversion"
+    execute "> Compiling doping code: " "make doping"
+    execute "> Running doping code: " "make rundoping"
+    execute "> Compare native and doping outputs: " "make compare"
     #execute "  * Compiling manually optimized code: " "make mopt"
     #execute "  * Running manually optimized code: " "make runmopt"
     echo ""

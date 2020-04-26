@@ -2,7 +2,7 @@
 CC = g++
 CFLAGS = -O2
 
-DOPING=${DOPING_ROOT}/src/doping.py
+DOPING=${DOPING_ROOT}/bin/dope
 
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib

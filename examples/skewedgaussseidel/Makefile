@@ -2,7 +2,7 @@
 CC = g++
 CFLAGS = -O3 -march=native
 
-DOPING=${DOPING_ROOT}/src/doping.py
+DOPING=${DOPING_ROOT}/bin/dope
 
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib
