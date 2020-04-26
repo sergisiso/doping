@@ -22,27 +22,28 @@ class InjectDoping (CodeTransformation):
 
     def _apply(self, node):
 
-        print("Loop at " + str(node.location))
+        print("Analyzing loop at " + str(node.location))
         self._LoopID = self._LoopID + 1
         LoopID = self._LoopID
 
-        # Filter loop with local function calls (otherwise
-        # will be copied in the optimized object file)
-        # if len(node.function_call_analysis()) > 0: continue
-
-        # Classify the loop variables
+        # Analyse the loop variables
         l, p, w, r = node.variable_analysis()
         local_vars = l
         pointers = p
         written_scalars = w
         runtime_constants = r
 
-        self._print_analysis(local_vars, pointers,
-                             written_scalars, runtime_constants)
-        if len(runtime_constants) < 1:
+        # Analyse the function calls
+        fcalls = node.function_call_analysis()
+
+        self._print_analysis(local_vars, pointers, written_scalars,
+                             runtime_constants, fcalls)
+
+        if len(runtime_constants) < 1 or len(fcalls) > 0:
+            print("    > No dynamic optimization applied.\n")
             return False
-        else:
-            print("    Creating dynamically optimized version of the loop.")
+        
+        print("    > Creating dynamically optimized version of the loop.\n")
 
         # Include doping runtime
         self._buffer.goto_line(1)
@@ -77,9 +78,9 @@ class InjectDoping (CodeTransformation):
         self._buffer.insertstr("#include <stdio.h>")
 
         # Write local functions called from the body loop.
-        for f in node.function_call_analysis():
-            self._buffer.insert(" ".join([x.spelling for x in
-                                          f.get_definition().get_tokens()]))
+        # for f in node.function_call_analysis():
+        #    self._buffer.insert(" ".join([x.spelling for x in
+        #                                  f.get_definition().get_tokens()]))
 
         self._buffer.insertstr(r"extern \"C\" void loop(va_list args){")
 
@@ -184,7 +185,7 @@ class InjectDoping (CodeTransformation):
         self._buffer.insert("#include \"../../src/runtime/dopingRuntime.h\"")
 
     def _print_analysis(self, local_vars, pointers, written_scalars,
-                        runtime_constants):
+                        runtime_constants, fcalls):
         print("    Local vars: ")
         for var in local_vars:
             print("        " + var.displayname + " (" +
@@ -202,4 +203,4 @@ class InjectDoping (CodeTransformation):
         for var in runtime_constants:
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
-        print("")
+        print("    Number of function calls: " + str(len(fcalls)))
