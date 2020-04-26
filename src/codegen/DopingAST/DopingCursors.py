@@ -224,6 +224,8 @@ class ForCursor (DopingCursorBase):
 
     For loops have the form:
     for(initialization;end_condition;increment){body}
+
+    FIXME: This is to restrictive, there are more For loop syntaxes now.
     '''
 
     # Should this be Attributes?
@@ -257,18 +259,21 @@ class ForCursor (DopingCursorBase):
 
     def body_string(self):
         body = self.get_body()
-        # BUG: libclang get_tokens, it returns one more token than needed
-        # [:-1] due to a bug in libclang?
         string = ""
-        line = list(body.get_tokens())[0].location.line
-        for token in list(body.get_tokens())[:-1]:
-            while (token.location.line > line):
-                line = line + 1
-                string = string + "\n"
+        line = self.location.line
+
+        # We need to join the tokens using ' ' and '\n' appropriately.
+        for token in body.get_tokens():
+            while token.location.line > line:
+                for _ in range(line, token.location.line):
+                    string = string + "\n"
+                line = token.location.line
             string = string + " " + token.spelling
 
-        # bug in libclang get_tokens, it returns one more token than needed
-        string = string + ";"
+        # If it is a single statement for (no enclosing '}') it needs a ';'
+        if string[-1] != "}":
+            string = string + ";"
+
         return string
 
     def cond_variable(self):

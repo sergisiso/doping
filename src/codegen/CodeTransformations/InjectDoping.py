@@ -111,14 +111,12 @@ class InjectDoping (CodeTransformation):
         # " optimized version. Restart from iteration" +
         # " %d\\n \", lstart);")
 
-        self._buffer.insertstr("for( unsigned " + node.cond_variable()
-                               + " = lstart;" + node.end_condition_string()
-                               + ";" + node.increment_string() + ")")
+        self._buffer.insertstr_nolb(
+            "for( unsigned " + node.cond_variable() + " = lstart;" +
+            node.end_condition_string() + "; " + node.increment_string() + ")")
 
         for line in node.body_string().split("\n"):
             self._buffer.insertstr(line)
-
-        self._buffer.insertstr("}}")
 
         self._buffer.insert(r'''"}\n",''')
 
@@ -170,10 +168,10 @@ class InjectDoping (CodeTransformation):
         self._buffer.insertpl(" );")
         self._buffer.insertpl(node.increment_string() + ")")
         self._buffer.increase_indexation()
-        self._buffer.insert(node.body_string())
+        self._buffer.insertpl(node.body_string())  # This breaks indentation
         self._buffer.decrease_indexation()
         self._buffer.decrease_indexation()
-        self._buffer.insert("}} //end while loop")
+        self._buffer.insert("} //end while loop")
         self._buffer.insert("")
 
     def _post_transformation(self):

@@ -90,7 +90,7 @@ class Rewriter:
         '''
         Insert string into the cursor possition.
 
-        :param string: String to insert.
+        :param str string: String to insert.
         '''
         # Update content
         self._content.insert(self._cursor - 1,
@@ -118,7 +118,7 @@ class Rewriter:
         Insert string at the end of the previous line and don't update the
         cursor.
 
-        :param string: String to insert.
+        :param str string: String to insert.
         '''
         self._content[self._cursor - 2] = (self._content[self._cursor - 2] +
                                            " " + string)
@@ -127,9 +127,17 @@ class Rewriter:
         '''
         Insert string inside a C style literal like: "<string>\n"
 
-        :param string: String to insert.
+        :param str string: String to insert.
         '''
         self.insert("\"" + string + "\\n\"")
+
+    def insertstr_nolb(self, string):
+        '''
+        Insert string inside a C style literal without a line break: "<string>"
+
+        :param str string: String to insert.
+        '''
+        self.insert("\"" + string + "\"")
 
     def delete(self):
         '''
@@ -153,7 +161,7 @@ class Rewriter:
         '''
         Replace contents from the cursor line with the new provided string.
 
-        :param string: String to insert.
+        :param str string: String to insert.
         '''
         self._content[self._cursor - 1] = (self._ind_string *
                                            self._ind_level) + string
