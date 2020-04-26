@@ -7,10 +7,10 @@ from codegen.CodeTransformations.CodeTransformation import CodeTransformation
 class InjectDoping (CodeTransformation):
 
     # def __init__(self, filename, flags, verbosity):
-    def __init__(self, inputfile, outputfile, flags=""):
+    def __init__(self, inputfile, outputfile, compiler_command=""):
         super(InjectDoping, self).__init__(inputfile, outputfile)
         # self.filename = filename
-        self.flags_string = flags
+        self.compiler_command = compiler_command
         # self.verbosity_level = verbosity
         self._LoopID = 0
 
@@ -123,7 +123,7 @@ class InjectDoping (CodeTransformation):
 
         # Continue dopinginfo object
 
-        self._buffer.insert("    .compiler_command = " + "\" \"" + ",")
+        self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
         self._buffer.insert("    .parameters = " + "\" \"" + ",")
         self._buffer.insert("};")
         # self._buffer.insertpl(", \"" + self.flags_string + "\"")

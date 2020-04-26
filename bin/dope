@@ -49,7 +49,7 @@ def main():
     # Initial Environment checks
     if 'DOPING_ROOT' not in os.environ:
         print("Error: Environment variable DOPING_ROOT not defined!")
-        exit(-1)
+        sys.exit(-1)
 
     dopingruntimepath = os.path.join(os.environ['DOPING_ROOT'],
                                      "bin/libdoping.so")
@@ -57,41 +57,51 @@ def main():
     if not os.path.isfile(dopingruntimepath):
         print("Error: Can't find doping Runtime object file."
               " Is doping properly compiled?")
-        exit(-1)
+        sys.exit(-1)
 
-    # Find C/C++ files in the input commnad
+    # Find C/C++ files in the input command
     c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
+    if len(c_files) != 1:
+        print("Error: Can't handle compiler commands without exactly 1 C/C++"
+              "file")
+        sys.exit(-1)
+    originalfile = c_files[0]
 
     # Link dl and dopingRuntime libraries (order is important!)
-    new_compiler_command = args.compiler_command
+    new_compiler_command = args.compiler_command[:]
     new_compiler_command.append("-I" + os.environ['DOPING_ROOT'] + "/bin")
     new_compiler_command.append(dopingruntimepath)
     new_compiler_command.append("-ldl")
 
-    # Probably will break with more complex examples
-    flags = ' '.join(filter(lambda x: x[0] == '-' and not x == '-o',
-                     args.compiler_command))
-    flags = str(args.compiler_command[0]) + " " + flags
+    # Get all compiler command with all flags but the -o and the input file
+    # (probably will break with more complex examples). These will be re-used
+    # during dynamic compilation.
+    dynamic_compilation_command = args.compiler_command[:]
+    dynamic_compilation_command.remove(originalfile)
+    outputflag_position = dynamic_compilation_command.index("-o")
+    dynamic_compilation_command.pop(outputflag_position + 1)
+    dynamic_compilation_command.pop(outputflag_position)
+    dynamic_compilation_string = ' '.join(dynamic_compilation_command)
 
     # Source to Source transformation of C/C++ files
-    print("Optimizing C/C++ files:")
-    for originalfile in c_files:
-        index = args.compiler_command.index(originalfile)
-        filename, file_extension = os.path.splitext(originalfile)
-        newfile = filename + ".doping" + file_extension
-        copyfile(originalfile, newfile)
-        print("- Generating code for " + originalfile + " -> " + newfile)
-
-        print(flags)
-        transformation = InjectDoping.InjectDoping(originalfile, newfile, flags)
-        transformation.apply()
-        new_compiler_command[index] = newfile
+    # FIXME: It should only do the copy and renaming if there is an opportunity
+    # for dynamic optimization.
+    index = args.compiler_command.index(originalfile)
+    filename, file_extension = os.path.splitext(originalfile)
+    newfile = filename + ".doping" + file_extension
+    copyfile(originalfile, newfile)
+    print("Generating doping framework file: " + newfile)
+    transformation = InjectDoping.InjectDoping(
+        originalfile, newfile, dynamic_compilation_string)
+    transformation.apply()
+    new_compiler_command[index] = newfile
 
     # Compile the generated code
-    print("Compiling code:")
+    print("Compiling with doping runtime and " + originalfile +
+          " -> " + newfile)
     print(' '.join(new_compiler_command))
     ret = call(list(new_compiler_command), shell=False)
-    exit(ret)
+    sys.exit(ret)
 
 
 if __name__ == "__main__":
