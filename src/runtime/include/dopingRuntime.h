@@ -53,7 +53,7 @@ EXTERNC int dopingRuntime(
     dopinginfo * loop,
     ...);
 
-EXTERNC unsigned dopingRuntimeU(
+EXTERNC int dopingRuntimeU(
     unsigned current_iteration,
     unsigned continue_condition,
     dopinginfoU * loop,

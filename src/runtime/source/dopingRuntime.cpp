@@ -67,10 +67,11 @@ int dopingRuntimeG(
 
         //unsigned lstart = va_arg(arguments, unsigned);
         //LOG(INFO) << "Argument: " << lstart;
-        T retval = df->run(current_iteration, arguments);
+        //T retval =
+        df->run(current_iteration, arguments);
 
         delete df;
-        return retval;
+        return 0; // Assume loop is finished (this may need a more careful solution)
     }
 
     //loop->timer = doping_set_timer();
@@ -88,7 +89,7 @@ int dopingRuntimeG(
 
 
 // Specialization of dopingRuntime for the extern "C" (no templates)
-unsigned dopingRuntimeU(unsigned current_iteration, unsigned continue_condition,
+int dopingRuntimeU(unsigned current_iteration, unsigned continue_condition,
                   dopinginfoU * loop, ...){
     va_list arguments;
     va_start(arguments, loop);

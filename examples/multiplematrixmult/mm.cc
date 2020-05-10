@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-void do_x_matrixMult ( unsigned num, double *a, double *b, double *c, unsigned MATRIXSIZE) {
+void do_x_matrixMult (unsigned num, double *a, double *b, double *c, unsigned MATRIXSIZE) {
     for ( unsigned n = 0; n < num; n++){
 	    for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 		    for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
