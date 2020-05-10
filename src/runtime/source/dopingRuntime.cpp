@@ -19,7 +19,8 @@ template <typename T, typename U>
 int dopingRuntimeG(
         T current_iteration,
         T continue_condition,
-        U * loop, ...){
+        U * loop,
+        va_list arguments){
 
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
@@ -64,10 +65,9 @@ int dopingRuntimeG(
         LOG(INFO) << "Compilation and linking took: " << tduration.count() \
             << " seconds.";
 
-        va_list arguments;
-        va_start(arguments, loop);
-        int retval = df->run(current_iteration, arguments);
-        va_end(arguments);
+        //unsigned lstart = va_arg(arguments, unsigned);
+        //LOG(INFO) << "Argument: " << lstart;
+        T retval = df->run(current_iteration, arguments);
 
         delete df;
         return retval;
@@ -94,6 +94,7 @@ unsigned dopingRuntimeU(unsigned current_iteration, unsigned continue_condition,
     va_start(arguments, loop);
     return dopingRuntimeG<unsigned, dopinginfoU>(current_iteration, continue_condition,
         loop, arguments);
+    va_end(arguments);
 }
 
 int dopingRuntime(int current_iteration, int continue_condition,
@@ -102,5 +103,6 @@ int dopingRuntime(int current_iteration, int continue_condition,
     va_start(arguments, loop);
     return dopingRuntimeG<int, dopinginfo>(current_iteration, continue_condition,
         loop, arguments);
+    va_end(arguments);
 }
 

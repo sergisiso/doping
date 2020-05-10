@@ -257,7 +257,13 @@ class ForCursor (DopingCursorBase):
         tokens = [x.spelling for x in incr.get_tokens()]
         return " ".join(tokens)
 
-    def body_string(self):
+    def body_string(self, referencing_variables=None):
+        """Return the body of the loop with an appropriate format.
+
+        If a referencing variables is given, any token that matches that
+        variable will be prefixed with the C referencing operator (*).
+        """
+
         body = self.get_body()
         string = ""
         line = self.location.line
@@ -268,7 +274,13 @@ class ForCursor (DopingCursorBase):
                 for _ in range(line, token.location.line):
                     string = string + "\n"
                 line = token.location.line
-            string = string + " " + token.spelling
+            # If a list of referencing variables is given and this token
+            # matches one of them, add the * prefix.
+            if referencing_variables and \
+                token.spelling in referencing_variables:
+                string += " *" + token.spelling
+            else:
+                string += " " + token.spelling
 
         # If it is a single statement for (no enclosing '}') it needs a ';'
         if string[-1] != "}":

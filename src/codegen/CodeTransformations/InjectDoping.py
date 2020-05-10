@@ -22,11 +22,8 @@ class InjectDoping(CodeTransformation):
         loop_id = self._loop_id
 
         # Analyse the loop variables
-        l, p, w, r = node.variable_analysis()
-        local_vars = l
-        pointers = p
-        written_scalars = w
-        runtime_constants = r
+        local_vars, pointers, written_scalars, runtime_constants = \
+                node.variable_analysis()
 
         # Analyse the function calls
         fcalls = node.function_call_analysis()
@@ -41,11 +38,12 @@ class InjectDoping(CodeTransformation):
         print("    > Creating dynamically optimized version of the loop.\n")
 
         # Choose signed or unsigned version
-        integer_type = node.cond_variable_type() # int/unsigned or raises error
-        if integer_type == "int":
+        if node.cond_variable_type() == "int":
+            iteration_type = "int"
             struct_type = "dopinginfo"
             rtfunc_name = "dopingRuntime"
         else:
+            iteration_type = "unsigned"
             struct_type = "dopinginfoU"
             rtfunc_name = "dopingRuntimeU"
 
@@ -105,42 +103,52 @@ class InjectDoping(CodeTransformation):
         #    self._buffer.insert(" ".join([x.spelling for x in
         #                                  f.get_definition().get_tokens()]))
 
-        self._buffer.insertstr(r"extern \"C\" void function(va_list args){")
+        self._buffer.insertstr(r"extern \"C\" void function(")
+        self._buffer.insertstr(iteration_type + " dopingCurrentIteration,")
+        self._buffer.insertstr("va_list args){")
 
-        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
-        # Get loop start condition
-        self._buffer.insertstr("unsigned lstart = va_arg(args, unsigned);")
-        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
+        # TODO: Pass arguments by reference and use statement below ?
+        # https://wiki.sei.cmu.edu/confluence/display/c/MSC39-C.+Do+not+call+
+        # va_arg%28%29+on+a+va_list+that+has+an+indeterminate+value
+        # self._buffer.insertstr("va_list args; va_copy(args, *arguments);")
+
+        # Declare local variables
+        for var in local_vars:
+            vtype = var.type.spelling
+            self._buffer.insertstr(vtype + " " + var.displayname + ";")
+
+        # Write delayed evaluated invariants
+        for invar in runtime_constants:
+            self._buffer.insertstr("const " + invar.type.spelling + " " +
+                                   invar.displayname +
+                                   " = /*<DOPING " +
+                                   invar.displayname + " >*/;")
 
         # Get pointers
-        for a in pointers:
-            atype = a.type.spelling
-            self._buffer.insertstr(atype + " " + a.displayname +
-                                   " = va_arg(args, " + atype + ");")
+        list_of_va_args = []
+        for pointer in pointers:
+            pointer_type = pointer.type.spelling
+            self._buffer.insertstr(pointer_type + " " + pointer.displayname +
+                                   " = va_arg(args, " + pointer_type + ");")
+            list_of_va_args.append(pointer.displayname)
 
-        # Declare additional vars
-        for v in written_scalars:
-            vtype = v.type.spelling
-            self._buffer.insertstr(vtype + " " + v.displayname + ";")
-
-        # Write delayed evaluated variables
-        for v in runtime_constants:
-            self._buffer.insertstr("const " + v.type.spelling + " " +
-                                   v.displayname +
-                                   " = /*<DOPING " +
-                                   v.displayname + " >*/;")
-
-        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
-        # if(self.verbosity_level==4):
-        # self._buffer.insert("printf(\"Executing doping" +
-        # " optimized version. Restart from iteration" +
-        # " %d\\n \", lstart);")
+        # Get written_scalars (passed by reference - as a pointer)
+        # Since in C we can not create aliases(&) we need to prefix all
+        # references to this variable with the C * operator in:
+        # node.get_* functions in the loop body and conditions.
+        ref_vars = []
+        for var in written_scalars:
+            vtype = var.type.spelling + "*"  # Add pointer indetifier
+            self._buffer.insertstr(vtype + " " + var.displayname +
+                                   " = va_arg(args, " + vtype + ");")
+            list_of_va_args.append("&" + var.displayname)
+            ref_vars.append(var.displayname)
 
         self._buffer.insertstr_nolb(
-            "for( unsigned " + node.cond_variable() + " = lstart;" +
+            "for( unsigned " + node.cond_variable() + " = dopingCurrentIteration;" +
             node.end_condition_string() + "; " + node.increment_string() + ")")
 
-        for line in node.body_string().split("\n"):
+        for line in node.body_string(referencing_variables=ref_vars).split("\n"):
             self._buffer.insertstr(line)
 
         self._buffer.insert(r'''"}\n",''')
@@ -159,7 +167,7 @@ class InjectDoping(CodeTransformation):
                             node.cond_variable() + ", " +
                             node.end_condition_string() + ", " +
                             "&info" + str(loop_id) + ", " +
-                            node.cond_variable())
+                            ", ".join(list_of_va_args))
 
         if False:
             self._buffer.insertpl(", " + node.cond_variable())
