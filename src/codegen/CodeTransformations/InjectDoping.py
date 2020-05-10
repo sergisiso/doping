@@ -40,6 +40,15 @@ class InjectDoping(CodeTransformation):
 
         print("    > Creating dynamically optimized version of the loop.\n")
 
+        # Choose signed or unsigned version
+        integer_type = node.cond_variable_type() # int/unsigned or raises error
+        if integer_type == "int":
+            struct_type = "dopinginfo"
+            rtfunc_name = "dopingRuntime"
+        else:
+            struct_type = "dopinginfoU"
+            rtfunc_name = "dopingRuntimeU"
+
         # Include doping runtime
         self._buffer.goto_line(1)
         include_string = "#include \"doping.h\""
@@ -76,7 +85,7 @@ class InjectDoping(CodeTransformation):
 
 
         # 1) Generate the dopinginfo object
-        self._buffer.insert("dopinginfo info" + str(loop_id) + " = {")
+        self._buffer.insert(struct_type + " info" + str(loop_id) + " = {")
         self._buffer.insert("    .iteration_start = " +
                             node.cond_starting_value() + ",")
         self._buffer.insert("    .iteration_space = " +
@@ -142,32 +151,17 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("    .parameters = " + parameters_string + ",")
         self._buffer.insert("};")
 
-        if False:  # Old code which I may need
-            timevar = "dopingEnd"+str(loop_id)
-            rtvar = "dopingRuntimeVal_"+str(loop_id)
-            self._buffer.insert("time_t "+timevar+";")
-            self._buffer.insert("char " + rtvar + "[" +
-                                str(len(runtime_constants))+"][20];")
-            for idx, var in enumerate(runtime_constants):
-                self._buffer.insert("sprintf(" + rtvar + "[" + str(idx) +
-                                    "], \"%d\" ," + var.displayname + ");")
-
         # 2) Loop starting value
         self._buffer.insert(node.initialization_string()+";")
 
         # 3) Doping Runtime call
-        self._buffer.insert("while ( dopingRuntime(" +
+        self._buffer.insert("while(" + rtfunc_name + "(" +
                             node.cond_variable() + ", " +
                             node.end_condition_string() + ", " +
-                            "&info" + str(loop_id))
-        if False:
-            # Add tuples of name and values of the runtime
-            # constant variables
-            # all in string format
-            for idx, var in enumerate(runtime_constants):
-                self._buffer.insertpl(", \"" + var.displayname + "\"" +
-                                      ", "+rtvar+"[" + str(idx) + "]")
+                            "&info" + str(loop_id) + ", " +
+                            node.cond_variable())
 
+        if False:
             self._buffer.insertpl(", " + node.cond_variable())
             for var in pointers:
                 self._buffer.insertpl(", " + var.displayname)

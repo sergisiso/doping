@@ -15,8 +15,11 @@
 
 using namespace std;
 
-int dopingRuntime(int current_iteration, int continue_condition,
-                  dopinginfo * loop, ...){
+template <typename T, typename U>
+int dopingRuntimeG(
+        T current_iteration,
+        T continue_condition,
+        U * loop, ...){
 
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
@@ -79,3 +82,25 @@ int dopingRuntime(int current_iteration, int continue_condition,
 //     link_specialized_fn(libname);
 //     function(args);
 //     return false;
+//
+//
+//
+
+
+// Specialization of dopingRuntime for the extern "C" (no templates)
+unsigned dopingRuntimeU(unsigned current_iteration, unsigned continue_condition,
+                  dopinginfoU * loop, ...){
+    va_list arguments;
+    va_start(arguments, loop);
+    return dopingRuntimeG<unsigned, dopinginfoU>(current_iteration, continue_condition,
+        loop, arguments);
+}
+
+int dopingRuntime(int current_iteration, int continue_condition,
+                  dopinginfo * loop, ...){
+    va_list arguments;
+    va_start(arguments, loop);
+    return dopingRuntimeG<int, dopinginfo>(current_iteration, continue_condition,
+        loop, arguments);
+}
+

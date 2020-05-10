@@ -276,8 +276,8 @@ class ForCursor (DopingCursorBase):
 
         return string
 
+    # FIXME: Following 2 methods are duplicated
     def cond_variable(self):
-        init = self.get_children()[0]
         tokens = [x.spelling for x in self.get_initialization().get_tokens()]
         if tokens.count(",") > 1:
             raise NotImplementedError(
@@ -301,6 +301,18 @@ class ForCursor (DopingCursorBase):
             raise NotImplementedError(
                 "Just implemented for loops with simple initialization"
             )
+
+    def cond_variable_type(self):
+        """Should return if the loop iterates an int or an unsigned"""
+
+        # Extremely basic version for now, it just hopes it is inline declared
+        # and without any typedef or other alias
+        # There is more "unsigned" that we don't capture and long types, ...
+        # but for now returning int is relatively safe
+        tokens = [x.spelling for x in self.get_initialization().get_tokens()]
+        if tokens[0] == "unsigned":
+            return "unsigned"
+        return "int"
 
     def cond_end_value(self):
 

@@ -4,7 +4,7 @@
 #include <sstream>
 
 
-void do_x_matrixMult ( unsigned num, double *a, double *b, double *c, int MATRIXSIZE) {
+void do_x_matrixMult ( unsigned num, double *a, double *b, double *c, unsigned MATRIXSIZE) {
     for ( unsigned n = 0; n < num; n++){
 	    for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 		    for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
@@ -16,7 +16,7 @@ void do_x_matrixMult ( unsigned num, double *a, double *b, double *c, int MATRIX
     }
 }
 
-void randomInitMatrix ( double *m, int MATRIXSIZE ) {
+void randomInitMatrix ( double *m, unsigned MATRIXSIZE ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 			m[x * MATRIXSIZE + y] = 1.0f;
@@ -24,7 +24,7 @@ void randomInitMatrix ( double *m, int MATRIXSIZE ) {
 	}
 }
 
-void zeroMatrix ( double *m, int MATRIXSIZE ) {
+void zeroMatrix ( double *m, unsigned MATRIXSIZE ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 			m[x * MATRIXSIZE + y] = 0.0f;
@@ -32,7 +32,7 @@ void zeroMatrix ( double *m, int MATRIXSIZE ) {
 	}
 }
 
-int sumAll (double *m, int MATRIXSIZE){
+int sumAll (double *m, unsigned MATRIXSIZE){
 
     int sum = 0;
     for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
@@ -69,10 +69,10 @@ int main ( int argc, char **argv ) {
 
 	// baseline non-taskgraph version
 	zeroMatrix ( c, N);
-    clock_t start = clock();
+    //clock_t start = clock();
 	do_x_matrixMult (rep, a, b, c, N);
-    clock_t end = clock();
-    int msec = (end-start)*1000/ CLOCKS_PER_SEC;
+    //clock_t end = clock();
+    //int msec = (end-start)*1000/ CLOCKS_PER_SEC;
     //std::cout << "Matrix multiplication took " << msec/1000 << "." << msec%1000 << "s" << std::endl;
     int res = sumAll(c,N);
 	std::cout << "Sum of the result = " << res << std::endl;

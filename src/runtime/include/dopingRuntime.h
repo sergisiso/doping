@@ -23,7 +23,26 @@ typedef struct dopinginfo{
     void * arguments;
     // Information about the dynamic state?
     // const char * stage;
-}dopinginfo;
+} dopinginfo;
+
+typedef struct dopinginfoU{
+    // Starting iteration value (lower end of iteration space).
+    unsigned iteration_start;
+    // Length of the loop (upper bound - lower bound of iteration space).
+    unsigned iteration_space;
+    // Source code to be rendered and re-compiled.
+    const char * source;
+    // Command re-compile the given source code.
+    const char * compiler_command;
+    // Parameters to render the given source code.
+    const char * parameters;
+    // Arguments to give to the re-compiled function. This should be all the
+    // variables and references used inside the given source.
+    int num_arguments;
+    void * arguments;
+    // Information about the dynamic state?
+    // const char * stage;
+} dopinginfoU;
 
 //time_t doping_set_timer();
 
@@ -32,4 +51,10 @@ EXTERNC int dopingRuntime(
     int current_iteration,
     int continue_condition,
     dopinginfo * loop,
+    ...);
+
+EXTERNC unsigned dopingRuntimeU(
+    unsigned current_iteration,
+    unsigned continue_condition,
+    dopinginfoU * loop,
     ...);
