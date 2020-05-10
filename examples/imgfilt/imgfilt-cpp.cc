@@ -11,8 +11,8 @@
 void filter (float *mask, unsigned n, unsigned m, const float *input, float *output, unsigned p, unsigned q)
 {
 	float    sum;
-	int half_n = (n/2);
-	int half_m = (m/2);
+	unsigned half_n = (n/2);
+	unsigned half_m = (m/2);
 
 	for (unsigned i = half_n; i < p - half_n; i++) {
 		for (unsigned j = half_m; j < q - half_m; j++) {
@@ -27,7 +27,7 @@ void filter (float *mask, unsigned n, unsigned m, const float *input, float *out
 	}
 }
 
-float average (float *m, int size){
+float average (float *m, unsigned size){
 
     float sum = 0;
 	for ( unsigned x = 0; x < size; ++x ) {
@@ -41,10 +41,10 @@ float average (float *m, int size){
 
 int main (int argc, char **argv) {
 
-    int img_size;
-    int msk_size;
-    int num_masks;
-    int num_images;
+    unsigned img_size;
+    unsigned msk_size;
+    unsigned num_masks;
+    unsigned num_images;
 
     // Get array size from first argument
     if (argc == 2){

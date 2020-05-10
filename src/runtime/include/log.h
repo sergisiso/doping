@@ -23,14 +23,14 @@ public:
     }
     ~LOG() {
         if(opened) {
-            cout << endl;
+            cerr << endl;
         }
         opened = false;
     }
     template<class T>
     LOG &operator<<(const T &msg) {
         if(msglevel >= DEBUG && verbose) {
-            cout << msg;
+            cerr << msg;
             opened = true;
         }
         return *this;

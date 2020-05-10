@@ -21,12 +21,6 @@ doping: imgfilt-cpp.cc
 rundoping:
 	./if.dopingversion.exe 50 | tee dopingversion.output
 
-mopt: imgfilt-tg.cc
-	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe
-
-runmopt:
-	./if.tgversion.exe
-
 perfdoping:
 	rm -f perfdoping.txt
 	$(foreach it,$(ITERATIONS), echo $(it) $(shell (/usr/bin/time -f "%e" ./if.dopingversion.exe $$it) 2>&1 > /dev/null) >> perfdoping.txt ;)
@@ -37,9 +31,6 @@ perfcversion:
 
 compare:
 	diff cversion.output dopingversion.output
-
-
-
 
 clean:
 	rm  -f *.exe *.loop.cc imgfilt-cpp.doping.* *.txt *.output
