@@ -13,19 +13,13 @@ cversion: skewedgaussseidel.cc
 	$(CC) $(CFLAGS) skewedgaussseidel.cc -o sgs.cversion.exe
 
 runcversion:
-	./sgs.cversion.exe | tee cversion.output
+	./sgs.cversion.exe 100 | tee cversion.output
 
 doping: skewedgaussseidel.cc
 	$(DOPING) -- $(CC) $(CFLAGS) skewedgaussseidel.cc -o sgs.dopingversion.exe
 
 rundoping:
-	./sgs.dopingversion.exe | tee dopingversion.output
-
-mopt: imgfilt-tg.cc
-	$(CC) $(CFLAGS) $(TGINCLUDE) $(TGLIB) -ltaskgraph imgfilt-tg.cc -o if.tgversion.exe
-
-runmopt:
-	./if.tgversion.exe
+	./sgs.dopingversion.exe 100 | tee dopingversion.output
 
 perfdoping:
 	rm -f perfdoping.txt

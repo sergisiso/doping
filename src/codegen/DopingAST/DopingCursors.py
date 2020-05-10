@@ -150,10 +150,6 @@ class DopingCursorBase(Cursor):
                             exclude_headers=True):
         return self._find(CursorKind.ARRAY_SUBSCRIPT_EXPR)
 
-    def find_pointer_references(self, outermostonly=False,
-                                exclude_headers=True):
-        pass
-
     def find_all_accesses(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.UNEXPOSED_EXPR)
 
@@ -418,57 +414,56 @@ class ForCursor (DopingCursorBase):
 
         '''
         local_vars = []
-        arrays = []
+        local_vars_names = []
+        pointer_vars = []
+        pointer_vars_names = []
         written_scalars = []
+        written_scalars_names = []
         runtime_constants = []
 
         # 1. Find local variables: Declared inside the loop.
         for decl in self.find_declarations():
             local_vars.append(decl.get_children()[0])
+            local_vars_names.append(decl.get_children()[0].displayname)
 
         # 2. Find variables that are written in the loop.
         for assignment in self.find_assignments():
             var = assignment.get_children()[0]
-            if (var not in local_vars) and \
-               (var.displayname not in
-               map(lambda i: i.displayname, written_scalars)):
-                # avoid duplicated (FIXME: but what happend with
+            if (var.displayname not in local_vars_names) and \
+               (var.displayname not in written_scalars_names):
+                # avoid duplicated (FIXME: but what happens with
                 # multiple declarations with same name?)
                 if var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR:
                     written_scalars.append(var)
+                    written_scalars_names.append(var.displayname)
 
-        # 3. Find arrays and pointers read in the loop.
-        for a_access in self.find_array_accesses():
-            x = a_access
-            while x.get_children()[0].displayname == "":
+        # 3. Find arrays read in the loop (raw pointers are added in the
+        # loop below).
+        for array in self.find_array_accesses():
+            while array.get_children()[0].displayname == "":
                 # recurse down in case it is a multidimensional array
-                x = x.get_children()[0]
-            if (x.get_children()[0].displayname not in
-               map(lambda i: i.displayname, arrays)):  # avoid duplicates
-                arrays.append(x.get_children()[0])
-
-        arrays_dp = [x.displayname for x in arrays]
-        local_dp = [x.displayname for x in local_vars]
-        written_dp = [x.displayname for x in written_scalars]
+                array = array.get_children()[0]
+            # avoid duplicates
+            if array.get_children()[0].displayname not in pointer_vars_names:
+                pointer_vars.append(array.get_children()[0])
+                pointer_vars_names.append(array.get_children()[0].displayname)
 
         # 4. Variables which can be constant between loop iterations
         runtime_constants = []
-        ru_dp = []
+        runtime_constants_names = []
         for access in self.find_all_accesses():
-            if (access.displayname not in ru_dp) and \
-               (access.displayname not in local_dp) and \
-               (access.displayname not in written_dp) and \
-               (access.displayname not in arrays_dp) and \
+            if (access.displayname not in runtime_constants_names) and \
+               (access.displayname not in local_vars_names) and \
+               (access.displayname not in written_scalars_names) and \
+               (access.displayname not in pointer_vars_names) and \
                (access.displayname != ''):
                 if access.type_is_scalar() and \
-                   (access.get_children()[0].kind !=
-                   CursorKind.CALL_EXPR):
-                    ru_dp.append(access.displayname)
+                   (access.get_children()[0].kind != CursorKind.CALL_EXPR):
                     runtime_constants.append(access)
+                    runtime_constants_names.append(access.displayname)
                 if access.type_is_pointer() and \
-                   (access.get_children()[0].kind !=
-                   CursorKind.CALL_EXPR):
-                    arrays.append(access)
-                    arrays_dp.append(access.displayname)
+                   (access.get_children()[0].kind != CursorKind.CALL_EXPR):
+                    pointer_vars.append(access)
+                    pointer_vars_names.append(access.displayname)
 
-        return local_vars, arrays, written_scalars, runtime_constants
+        return local_vars, pointer_vars, written_scalars, runtime_constants
