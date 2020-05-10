@@ -57,7 +57,7 @@ First one should specify DOPING_ROOT environment variable to point the doping fo
 .. code-block:: bash
 
     export DOPING_ROOT=[path to doping directory]
-    export DOPING_VERBOSE=5
+    export DOPING_VERBOSE=1
 
 Simple compiler instruction:
 

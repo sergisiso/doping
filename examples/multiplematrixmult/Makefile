@@ -1,6 +1,6 @@
 
 CC = g++
-CFLAGS = -O3 -march=native
+CFLAGS = -g -O1 -march=native
 
 ITERATIONS=$(shell seq 1000 1000 50000)
 

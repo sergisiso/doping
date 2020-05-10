@@ -1,18 +1,13 @@
-import os
-from subprocess import call
 from codegen.Rewriter import Rewriter
 from codegen.CodeTransformations.CodeTransformation import CodeTransformation
 
 
-class InjectDoping (CodeTransformation):
+class InjectDoping(CodeTransformation):
 
-    # def __init__(self, filename, flags, verbosity):
     def __init__(self, inputfile, outputfile, compiler_command=""):
         super(InjectDoping, self).__init__(inputfile, outputfile)
-        # self.filename = filename
         self.compiler_command = compiler_command
-        # self.verbosity_level = verbosity
-        self._LoopID = 0
+        self._loop_id = 0
 
     def _candidates(self):
         return self._ast.find_loops(True, True)
@@ -23,8 +18,8 @@ class InjectDoping (CodeTransformation):
     def _apply(self, node):
 
         print("Analyzing loop at " + str(node.location))
-        self._LoopID = self._LoopID + 1
-        LoopID = self._LoopID
+        self._loop_id = self._loop_id + 1
+        loop_id = self._loop_id
 
         # Analyse the loop variables
         l, p, w, r = node.variable_analysis()
@@ -42,7 +37,7 @@ class InjectDoping (CodeTransformation):
         if len(runtime_constants) < 1 or len(fcalls) > 0:
             print("    > No dynamic optimization applied.\n")
             return False
-        
+
         print("    > Creating dynamically optimized version of the loop.\n")
 
         # Include doping runtime
@@ -55,14 +50,33 @@ class InjectDoping (CodeTransformation):
         self._buffer.goto_original_line(node.get_start())
         self._buffer.insert("//  ---- CODE TRANSFORMED BY doping ----")
         self._buffer.insert("//  --------- Old version: ----------")
-        for i in range((node.get_end() - node.get_start()) + 1):
+        for _ in range((node.get_end() - node.get_start()) + 1):
             self._buffer.comment()
         self._buffer.insert("")
 
         # Generate new version of the loop
         self._buffer.insert("//  --------- New version: ----------")
+
+        # Convert runtime constant values into strings with sprintf
+        # if len(runtime_constants) > 0  # For now this is always true
+
+        # Unique string identifier
+        parameters_string = "dopingRuntimeVal_" + str(loop_id)
+        # Declare the string (array of char)
+        self._buffer.insert("char " + parameters_string + "[100];")
+        # Populate with a sprintf call
+        format_list = []
+        parameters_list = []
+        for idx, var in enumerate(runtime_constants):
+            format_list.append(var.displayname + ":%d")
+            parameters_list.append(var.displayname)
+        self._buffer.insert("sprintf(" + parameters_string + ", ")
+        self._buffer.insertpl("\""+",".join(format_list) + "\", ")
+        self._buffer.insertpl(", ".join(parameters_list) + ");")
+
+
         # 1) Generate the dopinginfo object
-        self._buffer.insert("dopinginfo info" + str(LoopID) + " = {")
+        self._buffer.insert("dopinginfo info" + str(loop_id) + " = {")
         self._buffer.insert("    .iteration_start = " +
                             node.cond_starting_value() + ",")
         self._buffer.insert("    .iteration_space = " +
@@ -82,18 +96,18 @@ class InjectDoping (CodeTransformation):
         #    self._buffer.insert(" ".join([x.spelling for x in
         #                                  f.get_definition().get_tokens()]))
 
-        self._buffer.insertstr(r"extern \"C\" void loop(va_list args){")
+        self._buffer.insertstr(r"extern \"C\" void function(va_list args){")
 
+        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
         # Get loop start condition
         self._buffer.insertstr("unsigned lstart = va_arg(args, unsigned);")
+        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
 
         # Get pointers
         for a in pointers:
             atype = a.type.spelling
             self._buffer.insertstr(atype + " " + a.displayname +
                                    " = va_arg(args, " + atype + ");")
-            # self._buffer.insert("double *__restrict__ " +
-            # a.displayname + " = va_arg(args, " \
 
         # Declare additional vars
         for v in written_scalars:
@@ -104,9 +118,10 @@ class InjectDoping (CodeTransformation):
         for v in runtime_constants:
             self._buffer.insertstr("const " + v.type.spelling + " " +
                                    v.displayname +
-                                   " = dopingPLACEHOLDER_" +
-                                   v.displayname + ";")
+                                   " = /*<DOPING " +
+                                   v.displayname + " >*/;")
 
+        self._buffer.insertstr(r"printf(\"I am in\\n\"); fflush(stdout);")
         # if(self.verbosity_level==4):
         # self._buffer.insert("printf(\"Executing doping" +
         # " optimized version. Restart from iteration" +
@@ -124,13 +139,12 @@ class InjectDoping (CodeTransformation):
         # Continue dopinginfo object
 
         self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
-        self._buffer.insert("    .parameters = " + "\" \"" + ",")
+        self._buffer.insert("    .parameters = " + parameters_string + ",")
         self._buffer.insert("};")
-        # self._buffer.insertpl(", \"" + self.flags_string + "\"")
 
         if False:  # Old code which I may need
-            timevar = "dopingEnd"+str(LoopID)
-            rtvar = "dopingRuntimeVal_"+str(LoopID)
+            timevar = "dopingEnd"+str(loop_id)
+            rtvar = "dopingRuntimeVal_"+str(loop_id)
             self._buffer.insert("time_t "+timevar+";")
             self._buffer.insert("char " + rtvar + "[" +
                                 str(len(runtime_constants))+"][20];")
@@ -145,7 +159,7 @@ class InjectDoping (CodeTransformation):
         self._buffer.insert("while ( dopingRuntime(" +
                             node.cond_variable() + ", " +
                             node.end_condition_string() + ", " +
-                            "&info" + str(LoopID))
+                            "&info" + str(loop_id))
         if False:
             # Add tuples of name and values of the runtime
             # constant variables
@@ -184,17 +198,18 @@ class InjectDoping (CodeTransformation):
         self._buffer.insert("#include <stdlib.h>")
         self._buffer.insert("#include \"../../src/runtime/dopingRuntime.h\"")
 
-    def _print_analysis(self, local_vars, pointers, written_scalars,
+    @staticmethod
+    def _print_analysis(local_vars, pointers, written_scalars,
                         runtime_constants, fcalls):
         print("    Local vars: ")
         for var in local_vars:
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Arrays/Pointers: ")
-        for var in pointers:
-            v = var.get_children()[0]
-            print("        " + v.displayname + " (" +
-                  v.type.spelling + ")")
+        for pointer in pointers:
+            var = pointer.get_children()[0]
+            print("        " + var.displayname + " (" +
+                  var.type.spelling + ")")
         print("    Scalar writes: ")
         for var in written_scalars:
             print("        " + var.displayname + " (" +
