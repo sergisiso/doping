@@ -63,6 +63,7 @@ class InjectDoping(CodeTransformation):
 
         # Generate new version of the loop
         self._buffer.insert("//  --------- New version: ----------")
+        self._buffer.insert("{  // start a doping scope")
 
         # Convert runtime constant values into strings with sprintf
         # if len(runtime_constants) > 0  # For now this is always true
@@ -203,6 +204,7 @@ class InjectDoping(CodeTransformation):
         self._buffer.decrease_indexation()
         self._buffer.decrease_indexation()
         self._buffer.insert("} //end while loop")
+        self._buffer.insert("} //close doping scope")
         self._buffer.insert("")
 
     def _post_transformation(self):
