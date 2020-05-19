@@ -75,7 +75,21 @@ class InjectDoping(CodeTransformation):
         format_list = []
         parameters_list = []
         for idx, var in enumerate(runtime_constants):
-            format_list.append(var.displayname + ":%d")
+            format_specifier = None
+            if var.type.spelling in ('int', 'short', 'long'):
+                format_specifier = "%d"
+            elif var.type.spelling in ('unsigned int', 'unsigned long'):
+                format_specifier = "%u"
+            elif var.type.spelling in ('float'):
+                format_specifier = "%f"
+            elif var.type.spelling in ('double'):
+                format_specifier = "%lf"
+            else:
+                print("    > Tried dynamic optimization but found unsupported"
+                      " type.\n")
+                return False
+
+            format_list.append(var.displayname + ":" + format_specifier)
             parameters_list.append(var.displayname)
         self._buffer.insert("sprintf(" + parameters_string + ", ")
         self._buffer.insertpl("\""+",".join(format_list) + "\", ")
