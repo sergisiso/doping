@@ -160,8 +160,9 @@ class InjectDoping(CodeTransformation):
             ref_vars.append(var.displayname)
 
         self._buffer.insertstr_nolb(
-            "for( unsigned " + node.cond_variable() + " = dopingCurrentIteration;" +
-            node.end_condition_string() + "; " + node.increment_string() + ")")
+            "for(" + node.cond_variable_type() +  " " + node.cond_variable() +
+            " = dopingCurrentIteration;" + node.end_condition_string() + "; " +
+            node.increment_string() + ")")
 
         for line in node.body_string(referencing_variables=ref_vars).split("\n"):
             self._buffer.insertstr(line)

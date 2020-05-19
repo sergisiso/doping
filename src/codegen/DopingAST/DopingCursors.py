@@ -284,20 +284,17 @@ class ForCursor (DopingCursorBase):
 
         return string
 
-    # FIXME: Following 2 methods are duplicated
     def cond_variable(self):
         tokens = [x.spelling for x in self.get_initialization().get_tokens()]
         if tokens.count(",") > 1:
             raise NotImplementedError(
                 "Multiple initialization for loops not implemented yet."
             )
-        elif tokens.count("=") == 1:
+        if tokens.count("=") == 1:
             eqindex = tokens.index("=")
-            return " ".join(tokens[eqindex - 1])
-        else:
-            raise NotImplementedError(
-                "Just implemented for loops with simple initialization."
-            )
+            return tokens[eqindex - 1]
+        raise NotImplementedError(
+            "Just implemented for loops with simple initialization.")
 
     def cond_starting_value(self):
         tokens = [x.spelling for x in self.get_initialization().get_tokens()]
