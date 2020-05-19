@@ -8,13 +8,15 @@ class CodeTransformation:
     _outputfile = None
     _ast = None
     _buffer = None
+    _flags = None
 
-    def __init__(self, inputfile, outputfile):
+    def __init__(self, inputfile, outputfile, flags):
         self._inputfile = inputfile
         self._outputfile = outputfile
+        self._flags = flags
 
     def apply(self):
-        tu = DopingTranslationUnit(self._inputfile)
+        tu = DopingTranslationUnit(self._inputfile, self._flags)
         self._ast = tu.get_root()
         result = []
         for loop in self._candidates():

@@ -5,7 +5,7 @@ from codegen.CodeTransformations.CodeTransformation import CodeTransformation
 class InjectDoping(CodeTransformation):
 
     def __init__(self, inputfile, outputfile, compiler_command=""):
-        super(InjectDoping, self).__init__(inputfile, outputfile)
+        super(InjectDoping, self).__init__(inputfile, outputfile, compiler_command)
         self.compiler_command = compiler_command
         self._loop_id = 0
 

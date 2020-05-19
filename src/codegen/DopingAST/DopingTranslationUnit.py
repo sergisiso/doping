@@ -1,3 +1,6 @@
+""" Docstring """
+
+
 import os
 from clang.cindex import Index
 from codegen.DopingAST.DopingCursors import DopingCursorBase
@@ -12,7 +15,7 @@ class DopingTranslationUnit():
     _filename = None
     _TU = None
 
-    def __init__(self, filename):
+    def __init__(self, filename, compiler_command=None):
         if not os.path.isfile(filename):
             raise FileNotFoundError("{0} does not exist".format(filename))
         extension = os.path.splitext(filename)[1]
@@ -21,9 +24,20 @@ class DopingTranslationUnit():
                 "Unrecognized file extension in {0}".format(filename)
             )
 
+        parse_arguments = ""
+        if compiler_command:
+            if not isinstance(compiler_command, str):
+                raise TypeError(
+                    "DopingTranslationUnit compiler_flags parameter must be "
+                    "a string")
+            parse_arguments = \
+                [x for x in compiler_command.split() if x.startswith("-")]
+        else:
+            parse_arguments = ""
+
         self._filename = filename
         index = Index.create()
-        self._TU = index.parse(filename)
+        self._TU = index.parse(filename, args=parse_arguments)
 
     def get_root(self):
         '''
