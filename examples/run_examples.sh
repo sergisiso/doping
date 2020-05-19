@@ -33,7 +33,7 @@ do
     echo "[[[     Running $testdir TEST     ]]]" | tee -a $LOGFILE
     echo "==================================================" | tee -a $LOGFILE
     echo ""
-    cd $DIR/$testdir
+    cd $DIR/quick_examples/$testdir
     execute "> Cleaning possible early results/binaries " "make clean"
     execute "> Compiling native code: " "make cversion"
     execute "> Running native code: " "make runcversion"
