@@ -7,14 +7,14 @@
 
 
 // A naive Gauss-Seidel smoother function for comparison purposes
-void gaussseidel1d ( unsigned niters, int MATRIXSIZE, SCALARTYPE * a1d ) {
+void gaussseidel1d ( unsigned niters, unsigned MATRIXSIZE, SCALARTYPE * a1d ) {
 	for ( unsigned x = 0; x < niters; ++x ) {
 		for ( unsigned y = 1; y < MATRIXSIZE - 1; ++y ) {
 			a1d[y] = 0.5*(a1d[y-1] + a1d[y+1]);
 		}
 	}
 }
-void gaussseidel2d ( unsigned niters, int MATRIXSIZE, SCALARTYPE ** a2d ) {
+void gaussseidel2d ( unsigned niters, unsigned MATRIXSIZE, SCALARTYPE ** a2d ) {
 	for ( unsigned x = 0; x < niters; ++x ) {
 		for ( unsigned y = 1; y < MATRIXSIZE - 1; ++y ) {
 			for ( unsigned z = 1; z < MATRIXSIZE - 1; ++z ) {
@@ -26,14 +26,14 @@ void gaussseidel2d ( unsigned niters, int MATRIXSIZE, SCALARTYPE ** a2d ) {
 }
 
 
-void randomInitMatrix1d ( int MATRIXSIZE, SCALARTYPE * m ) {
+void randomInitMatrix1d (unsigned MATRIXSIZE, SCALARTYPE * m ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		m[y] = (y%7) ? 1.0f : 0.1f;
 		if (y==0) m[y] = 2.0f; // break symmetry to expose bugs
 	}
 }
 
-void randomInitMatrix2d ( int MATRIXSIZE, SCALARTYPE ** m ) {
+void randomInitMatrix2d (unsigned MATRIXSIZE, SCALARTYPE ** m ) {
 	for ( unsigned y = 0; y < MATRIXSIZE; ++y ) {
 		for ( unsigned x = 0; x < MATRIXSIZE; ++x ) {
 			m[x][y] = ((x+y)%7) ? 1.0f : 0.1f;
@@ -42,7 +42,7 @@ void randomInitMatrix2d ( int MATRIXSIZE, SCALARTYPE ** m ) {
 	}
 }
 
-SCALARTYPE sumAll1( int MATRIXSIZE, SCALARTYPE * m){
+SCALARTYPE sumAll1(unsigned MATRIXSIZE, SCALARTYPE * m){
 
     SCALARTYPE sum = 0;
 
@@ -52,7 +52,7 @@ SCALARTYPE sumAll1( int MATRIXSIZE, SCALARTYPE * m){
     return sum;
 }
 
-SCALARTYPE sumAll2( int MATRIXSIZE, SCALARTYPE ** m){
+SCALARTYPE sumAll2(unsigned MATRIXSIZE, SCALARTYPE ** m){
 
     SCALARTYPE sum = 0;
 
