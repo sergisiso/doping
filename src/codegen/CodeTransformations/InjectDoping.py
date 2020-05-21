@@ -4,10 +4,11 @@ from codegen.CodeTransformations.CodeTransformation import CodeTransformation
 
 class InjectDoping(CodeTransformation):
 
-    def __init__(self, inputfile, outputfile, compiler_command=""):
+    def __init__(self, inputfile, outputfile, compiler_command="", is_cpp=False):
         super(InjectDoping, self).__init__(inputfile, outputfile, compiler_command)
         self.compiler_command = compiler_command
         self._loop_id = 0
+        self._is_cpp = is_cpp
 
     def _candidates(self):
         return self._ast.find_loops(True, True)
@@ -110,7 +111,7 @@ class InjectDoping(CodeTransformation):
         # Write function definition with pointers and written_scalars
         for include in node.find_file_includes():
             self._buffer.insertstr(include[:-1])  # [:-1] to remove the \n
-        self._buffer.insertstr("#include <cstdarg>")
+        self._buffer.insertstr("#include <stdarg.h>")
         self._buffer.insertstr("#include <stdio.h>")
 
         # Write local functions called from the body loop.
@@ -118,7 +119,10 @@ class InjectDoping(CodeTransformation):
         #    self._buffer.insert(" ".join([x.spelling for x in
         #                                  f.get_definition().get_tokens()]))
 
-        self._buffer.insertstr(r"extern \"C\" void function(")
+        if self._is_cpp:
+            self._buffer.insertstr(r"extern \"C\" void function(")
+        else:
+            self._buffer.insertstr(r"void function(")
         self._buffer.insertstr(iteration_type + " dopingCurrentIteration,")
         self._buffer.insertstr("va_list args){")
 

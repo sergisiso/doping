@@ -73,12 +73,14 @@ def main():
 
     for originalfile in c_files:
 
-        # Get all compiler command with all flags but the -o and the input file
-        # (probably will break with more complex examples). These will be
-        # re-used during dynamic compilation.
+        # Get all compiler command with all flags but the -c, the -o and the
+        # input file (probably will break with more complex examples). These
+        # will be re-used during dynamic compilation.
         dynamic_compilation_command = args.compiler_command[:]
         dynamic_compilation_command.remove(originalfile)
-        outputflag_position = dynamic_compilation_command.index("-o")
+        if '-c' in dynamic_compilation_command:
+            dynamic_compilation_command.remove('-c')
+        outputflag_position = dynamic_compilation_command.index('-o')
         dynamic_compilation_command.pop(outputflag_position + 1)
         dynamic_compilation_command.pop(outputflag_position)
         dynamic_compilation_string = ' '.join(dynamic_compilation_command)
@@ -92,7 +94,8 @@ def main():
         copyfile(originalfile, newfile)
         print("Generating doping framework file: " + newfile)
         transformation = InjectDoping.InjectDoping(
-            originalfile, newfile, dynamic_compilation_string)
+            originalfile, newfile, dynamic_compilation_string,
+            originalfile.endswith(('.cc','.cpp')))
         transformation.apply()
 
         # Replace originalfile with newfile
