@@ -26,6 +26,9 @@ class DopingCursorBase(Cursor):
         elif(node.kind == CursorKind.DECL_STMT):
             node.__class__ = DeclarationCursor
             return node
+        elif(node.kind == CursorKind.BINARY_OPERATOR):
+            node.__class__ = BinaryOperatorCursor
+            return node
         else:
             node.__class__ = DopingCursorBase
             return node
@@ -136,11 +139,12 @@ class DopingCursorBase(Cursor):
         caos = self._find(CursorKind.COMPOUND_ASSIGNMENT_OPERATOR)
         assignments.extend(caos)
 
-        # Binary operations which contain a '='
-        bops = self._find(CursorKind.BINARY_OPERATOR)
-        assignments.extend(filter(lambda x: x.contains_str("="), list(bops)))
+        # Binary operations with '=' operator
+        bops = list(self._find(CursorKind.BINARY_OPERATOR))
+        assignments.extend(filter(lambda x: x.operator() == "=", bops))
 
-        # Declarations which contain a '='
+        # Declarations which contain a '='.
+        # FIXME: This can have false positives ?
         decls = self._find(CursorKind.DECL_STMT)
         assignments.extend(filter(lambda x: x.contains_str("="), list(decls)))
 
@@ -188,6 +192,15 @@ class DopingCursorBase(Cursor):
 
         return fcalls
 
+
+class BinaryOperatorCursor (DopingCursorBase):
+    '''
+    Subclass for AST nodes that containt a BinaryOperator.
+    '''
+    def operator(self):
+        lhs_len = len([x for x in self.get_children()[0].get_tokens()])
+        tokens = [x.spelling for x in self.get_tokens()]
+        return tokens[lhs_len]
 
 class DeclarationCursor (DopingCursorBase):
     '''
@@ -426,6 +439,10 @@ class ForCursor (DopingCursorBase):
         # 2. Find variables that are written in the loop.
         for assignment in self.find_assignments():
             var = assignment.get_children()[0]
+            # If it has pointer operations ignore them until the variable
+            # name is found. FIXME: Is this robust enough?
+            while var.kind == CursorKind.UNARY_OPERATOR:
+                var = var.get_children()[0]
             if (var.displayname not in local_vars_names) and \
                (var.displayname not in written_scalars_names):
                 # avoid duplicated (FIXME: but what happens with

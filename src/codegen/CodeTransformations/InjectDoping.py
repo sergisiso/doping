@@ -224,6 +224,7 @@ class InjectDoping(CodeTransformation):
     @staticmethod
     def _print_analysis(local_vars, pointers, written_scalars,
                         runtime_constants, fcalls):
+        stop = False
         print("    Local vars: ")
         for var in local_vars:
             print("        " + var.displayname + " (" +
@@ -235,6 +236,12 @@ class InjectDoping(CodeTransformation):
                   var.type.spelling + ")")
         print("    Scalar writes: ")
         for var in written_scalars:
+            if not var.displayname:
+                print(var.displayname)
+                print(var.spelling)
+                print(var)
+                print(var.location)
+                stop = True
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Vars for delayed evaluation: ")
@@ -242,3 +249,5 @@ class InjectDoping(CodeTransformation):
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Number of function calls: " + str(len(fcalls)))
+        # if stop:
+        #     exit(-1)
