@@ -16,9 +16,13 @@ static const string STARTEXPR = "/*<DOPING ";
 static const string ENDEXPR = ">*/";
 
 
-struct ParseException : public exception {
+class ParseException : public exception {
+    string m_msg;
+public:
+    ParseException() : m_msg(string("Parse Exception")){}
+    ParseException(const std::string& msg) : m_msg(string("Parse Exception: " + msg)){}
     const char * what () const throw () {
-        return "Parse Exception";
+        return m_msg.c_str();
     }
 };
 
@@ -28,10 +32,11 @@ string render(const string& source, const map<string, string>& context){
     string output;
 
     // The final capacity of the output string will be probably bigger than
-    // the source string. We can reserve space to avoid aditional allocations.
+    // the source string. We can reserve space to avoid additional allocations.
     // output.reserve(source.length() + 20);
 
     while (cursor < source.length()) {
+        //LOG(INFO) << cursor << " " << source[cursor];
 
         // If it starts with STARTEXPR, process the tag
         if ( source.compare(cursor, STARTEXPR.length(), STARTEXPR) == 0){
@@ -46,7 +51,12 @@ string render(const string& source, const map<string, string>& context){
             // Get <VARIALBE>
             string word;
             while(source[cursor] != ' '){
-                if (!isalnum(source[cursor])) throw ParseException();
+                if (!(isalnum(source[cursor]) || source[cursor] == '_')){
+                    string msg = "The token ";
+                    msg.push_back(source[cursor]);
+                    msg += ("is not an aphanumeric character.");
+                    throw ParseException(msg);
+                }
                 word.push_back(source[cursor]);
                 cursor++;
             }

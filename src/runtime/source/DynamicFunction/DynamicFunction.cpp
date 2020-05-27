@@ -52,6 +52,7 @@ DynamicFunction::DynamicFunction(const string& source,
         }
     }
 
+    //LOG(INFO) << " Parameter map created";
     // Render the source with the given parameters
     string newsource = render(source, parmap);
     //LOG(INFO) << " Rendered source = " << newsource;

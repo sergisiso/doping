@@ -40,7 +40,8 @@ int dopingRuntimeG(
                      (loop->iteration_space - loop->iteration_start);
     float threshold = 0.5;
 
-    if ( (progress < threshold) ){
+    //if ( (progress < threshold) ){
+    if ( true ){
         chrono::time_point<chrono::system_clock> tstart, tend;
         tstart = chrono::system_clock::now();
      
@@ -56,19 +57,25 @@ int dopingRuntimeG(
             df = new DynamicFunction(loop->source, loop->parameters);
             df->compile_and_link(loop->compiler_command);
         } catch(exception& e){
-            LOG(ERROR) << " Doping failed to dynamically optimize function. "
-                "Continuing with baseline code.";
+            LOG(ERROR) << " Doping failed to dynamically optimize function with error:";
+            LOG(ERROR) << e.what();
+            LOG(ERROR) << "Continuing with baseline code.";
             return continue_condition;
         }
         tend = chrono::system_clock::now();
         chrono::duration<double> tduration = tend - tstart;
         LOG(INFO) << "Compilation and linking took: " << tduration.count() \
             << " seconds.";
+        cout << "DopingRuntime:" <<  tduration.count() << " ";
 
         //unsigned lstart = va_arg(arguments, unsigned);
         //LOG(INFO) << "Argument: " << lstart;
         //T retval =
+        tstart = chrono::system_clock::now();
         df->run(current_iteration, arguments);
+        tend = chrono::system_clock::now();
+        tduration = tend - tstart;
+        cout << "DynFunction:" <<  tduration.count() << " ";
 
         delete df;
         return 0; // Assume loop is finished (this may need a more careful solution)
