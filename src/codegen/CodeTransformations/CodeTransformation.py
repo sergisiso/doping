@@ -1,4 +1,4 @@
-from codegen.Rewriter import Rewriter
+from codegen.rewriter import Rewriter
 from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
 
 

@@ -188,7 +188,7 @@ class DopingCursorBase(Cursor):
 
         # Filter functions not defined in the same file
         # (definition not accessible) (is this enough?)
-        fcalls = [x for x in fcalls if x.get_definition() is not None]
+        # fcalls = [x for x in fcalls if x.get_definition() is not None]
 
         return fcalls
 
@@ -443,6 +443,8 @@ class ForCursor (DopingCursorBase):
             # name is found. FIXME: Is this robust enough?
             while var.kind == CursorKind.UNARY_OPERATOR:
                 var = var.get_children()[0]
+            if var.type_is_pointer():
+                continue
             if (var.displayname not in local_vars_names) and \
                (var.displayname not in written_scalars_names):
                 # avoid duplicated (FIXME: but what happens with
@@ -466,6 +468,9 @@ class ForCursor (DopingCursorBase):
         runtime_constants = []
         runtime_constants_names = []
         for access in self.find_all_accesses():
+            # if access.displayname == "mid":
+            #     import pdb; pdb.set_trace()
+            #     print(access.type.spelling)
             if (access.displayname not in runtime_constants_names) and \
                (access.displayname not in local_vars_names) and \
                (access.displayname not in written_scalars_names) and \

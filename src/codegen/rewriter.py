@@ -1,5 +1,6 @@
-import os
+""" This module provides a Rewritter buffer """
 
+import os
 
 class Rewriter:
     '''
@@ -47,13 +48,13 @@ class Rewriter:
         :param filetocopy: Path to file that will be copied into the buffer.
         '''
 
-        with open(filetocopy, 'r') as f:
-            self._content = f.read().splitlines()
+        with open(filetocopy, 'r') as fobj:
+            self._content = fobj.read().splitlines()
         self._cursor = 1
         self._original_num_lines = len(self._content)
         self._deltas = [0] * self._original_num_lines
-        self._next_original_delta_index = list(range(0,
-                                               self._original_num_lines))
+        self._next_original_delta_index = \
+            list(range(0, self._original_num_lines))
 
     def get_line(self):
         ''' Returns current cursor line.'''
@@ -151,7 +152,7 @@ class Rewriter:
                            self._original_num_lines):
                 self._deltas[i] = self._deltas[i] - 1
 
-            no_index = self._next_original_delta_index[self._cursor - 1]
+            # no_index = self._next_original_delta_index[self._cursor - 1]
             self._next_original_delta_index.pop(self._cursor - 1)
 
         # when cursor was last line, decrease it
@@ -201,5 +202,5 @@ class Rewriter:
 
     def save(self):
         ''' Save buffer contents to file. '''
-        with open(self._filename, 'w') as f:
-            f.write("\n".join(self._content))
+        with open(self._filename, 'w') as fobj:
+            fobj.write("\n".join(self._content))

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+""" Doping HPC compiler-wrapper application """
+
 import os
 import sys
 import argparse
@@ -7,10 +9,12 @@ from shutil import copyfile
 from subprocess import call
 from codegen.CodeTransformations import InjectDoping
 
-ext = ['.cpp', '.c', '.cc']
+EXT = ['.cpp', '.c', '.cc']
 
 
 def main():
+    """ Application entry point. It parses the arguments, applies the selected
+    transformations an invokes the compiler."""
 
     # Parse input arguments
     parser = argparse.ArgumentParser(
@@ -69,7 +73,7 @@ def main():
     new_compiler_command.append("-ldl")
 
     # Find C/C++ files in the input command
-    c_files = [x for x in args.compiler_command if x.endswith(tuple(ext))]
+    c_files = [x for x in args.compiler_command if x.endswith(tuple(EXT))]
 
     for originalfile in c_files:
 
@@ -86,8 +90,8 @@ def main():
         dynamic_compilation_string = ' '.join(dynamic_compilation_command)
 
         # Source to Source transformation of C/C++ files
-        # FIXME: It should only do the copy and renaming if there is an opportunity
-        # for dynamic optimization.
+        # FIXME: It should only do the copy and renaming if there is an
+        # opportunity for dynamic optimization.
         index = args.compiler_command.index(originalfile)
         filename, file_extension = os.path.splitext(originalfile)
         newfile = filename + ".doping" + file_extension
@@ -95,7 +99,7 @@ def main():
         print("Generating doping framework file: " + newfile)
         transformation = InjectDoping.InjectDoping(
             originalfile, newfile, dynamic_compilation_string,
-            originalfile.endswith(('.cc','.cpp')))
+            originalfile.endswith(('.cc', '.cpp')))
         transformation.apply()
 
         # Replace originalfile with newfile
