@@ -1,5 +1,5 @@
 from codegen.rewriter import Rewriter
-from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
+from codegen.ast.translation_unit import DopingTranslationUnit
 
 
 class CodeTransformation:

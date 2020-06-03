@@ -15,7 +15,12 @@ compile:
 	cp src/runtime/include/dopingRuntime.h bin/doping.h
 
 test: compile
-	cd examples && ./run_examples.sh
+	pytest src/codegen  # Doping Unit tests
+	cd src/runtime && make test  # Runtime Unit tests
+	cd examples && ./run_examples.sh  # Integration tests
+
+examples: compile
+	cd examples && ./run_examples.sh  # Integration tests
 
 clean:
 	rm -rf ./src/clang/__pycache__ ./src/codegen/CodeTransformations/__pycache__

@@ -3,7 +3,7 @@
 
 import os
 from clang.cindex import Index
-from codegen.DopingAST.DopingCursors import DopingCursorBase
+from codegen.ast.cursors import DopingCursor
 
 
 class DopingTranslationUnit():
@@ -44,5 +44,5 @@ class DopingTranslationUnit():
         Returns the DopingCursor that represents the AST root node.
         '''
         root = self._TU.cursor
-        root.__class__ = DopingCursorBase
+        root.__class__ = DopingCursor
         return root

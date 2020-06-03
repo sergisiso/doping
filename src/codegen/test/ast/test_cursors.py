@@ -1,12 +1,10 @@
-
-
 ''' Py.test tests for the DopingCursorBase class as
 implemented in DopingAST/DopingCursor.py '''
 
 import os
 import pytest
-from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
-from codegen.DopingAST.DopingCursors import DopingCursorBase
+from codegen.ast.translation_unit import DopingTranslationUnit
+from codegen.ast.cursors import DopingCursor
 
 
 class TestDopingCursorBase(object):
@@ -31,4 +29,4 @@ class TestDopingCursorBase(object):
         return tu.get_root()
 
     def test_fixtures_are_CursorBase(self, sampleCursor):
-        assert isinstance(sampleCursor, DopingCursorBase)
+        assert isinstance(sampleCursor, DopingCursor)

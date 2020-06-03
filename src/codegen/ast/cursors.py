@@ -8,13 +8,13 @@ BINARY_RELATIONAL_OPERATORS_LT = ("<", "<=")
 BINARY_LOGICAL_OPERATORS = ("&&", "||")
 
 
-class DopingCursorBase(Cursor):
+class DopingCursor(Cursor):
     '''
     Doping Cursor which inherits from Clang Cursors and extends it.
     '''
 
     # IMPORTANT: All Cursor movements/traversals/references should
-    # call the instantiate_node to remain inside DOpIng functionality
+    # call the instantiate_node to remain inside Doping functionality
     # at the moment the traversal methods implemented are:
     #  -  get_children()
 
@@ -30,7 +30,7 @@ class DopingCursorBase(Cursor):
             node.__class__ = BinaryOperatorCursor
             return node
         else:
-            node.__class__ = DopingCursorBase
+            node.__class__ = DopingCursor
             return node
 
     def get_children(self):
@@ -38,8 +38,8 @@ class DopingCursorBase(Cursor):
         Calls Clang AST get_children method but it then instantiate
         the object to proper Doping Cursor subclass.
         '''
-        return [DopingCursorBase._instantiate_node(x)
-                for x in super(DopingCursorBase, self).get_children()]
+        return [DopingCursor._instantiate_node(x)
+                for x in super(DopingCursor, self).get_children()]
 
     def find_file_includes(self):
         # return filter(self.is_from_file, self.root.find_includes())
@@ -193,7 +193,7 @@ class DopingCursorBase(Cursor):
         return fcalls
 
 
-class BinaryOperatorCursor (DopingCursorBase):
+class BinaryOperatorCursor (DopingCursor):
     '''
     Subclass for AST nodes that containt a BinaryOperator.
     '''
@@ -202,7 +202,7 @@ class BinaryOperatorCursor (DopingCursorBase):
         tokens = [x.spelling for x in self.get_tokens()]
         return tokens[lhs_len]
 
-class DeclarationCursor (DopingCursorBase):
+class DeclarationCursor (DopingCursor):
     '''
     Subclass for AST nodes that containt a Declaration Statement.
 
@@ -227,7 +227,7 @@ class DeclarationCursor (DopingCursorBase):
         return datatype, varname
 
 
-class ForCursor (DopingCursorBase):
+class ForCursor (DopingCursor):
     '''
     Subclass for AST nodes that containt a For Loop block.
 

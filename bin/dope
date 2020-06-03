@@ -7,7 +7,7 @@ import sys
 import argparse
 from shutil import copyfile
 from subprocess import call
-from codegen.CodeTransformations import InjectDoping
+from codegen.transformations import InjectDoping
 
 EXT = ['.cpp', '.c', '.cc']
 
@@ -97,7 +97,7 @@ def main():
         newfile = filename + ".doping" + file_extension
         copyfile(originalfile, newfile)
         print("Generating doping framework file: " + newfile)
-        transformation = InjectDoping.InjectDoping(
+        transformation = InjectDoping(
             originalfile, newfile, dynamic_compilation_string,
             originalfile.endswith(('.cc', '.cpp')))
         transformation.apply()

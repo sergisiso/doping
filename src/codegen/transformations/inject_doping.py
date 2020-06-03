@@ -1,8 +1,11 @@
-from codegen.rewriter import Rewriter
-from codegen.CodeTransformations.CodeTransformation import CodeTransformation
+""" Implementation of InjectDoping transformation """
+
+from codegen.transformations.transformation import CodeTransformation
 
 
 class InjectDoping(CodeTransformation):
+    """ InjectDoping Transformation """
+    # pylint: disable=too-few-public-methods
 
     def __init__(self, inputfile, outputfile, compiler_command="", is_cpp=False):
         super(InjectDoping, self).__init__(inputfile, outputfile, compiler_command)
@@ -19,8 +22,8 @@ class InjectDoping(CodeTransformation):
     def _apply(self, node):
 
         print("Analyzing loop at " + str(node.location))
-        if node.location.line < 910 or node.location.line > 5584:
-            return False
+        #if node.location.line < 910 or node.location.line > 5584:
+        #    return False
         self._loop_id = self._loop_id + 1
         loop_id = self._loop_id
 
@@ -59,7 +62,7 @@ class InjectDoping(CodeTransformation):
         # Comment old code
         self._buffer.goto_original_line(node.get_start())
         self._buffer.insert("//  ---- CODE TRANSFORMED BY doping ----")
-        self._buffer.insert("//  ---- Old version from " + str(node.location()) + "----------")
+        self._buffer.insert("//  ---- Old version from " + str(node.location) + "----------")
         for _ in range((node.get_end() - node.get_start()) + 1):
             self._buffer.comment()
         self._buffer.insert("")

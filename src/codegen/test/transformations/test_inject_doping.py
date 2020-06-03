@@ -1,15 +1,14 @@
 
 
-''' Py.test tests for the ForCursor class as
-implemented in DopingAST/DopingCursors.py '''
+''' Py.test tests for the DopingTranslationUnit class as
+implemented in DopingAST/DopingTranslationUnit.py '''
 
 import os
 import pytest
-from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
-from codegen.DopingAST.DopingCursors import ForCursor
+from codegen.ast.translation_unit import DopingTranslationUnit
 
 
-class TestDopingForCursor(object):
+class TestDopingTranslationUnit(object):
 
     @pytest.fixture
     def samplefile(self, tmpdir):

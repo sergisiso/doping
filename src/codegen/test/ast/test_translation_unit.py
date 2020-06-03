@@ -3,7 +3,8 @@ implemented in DopingAST/DopingTranslationUnit.py '''
 
 import os
 import pytest
-from codegen.DopingAST.DopingTranslationUnit import DopingTranslationUnit
+from codegen.ast.translation_unit import DopingTranslationUnit
+from codegen.ast.cursors import DopingCursor
 
 
 class TestDopingTranslationUnit(object):
@@ -82,5 +83,4 @@ class TestDopingTranslationUnit(object):
         # assert False, str(tu.TU.cursor.spelling)
 
     def test_init_with_file(self, sampleTU):
-        from codegen.DopingAST.DopingCursors import DopingCursorBase
-        assert isinstance(sampleTU.get_root(), DopingCursorBase)
+        assert isinstance(sampleTU.get_root(), DopingCursor)
