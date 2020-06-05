@@ -35,7 +35,7 @@ string run_shell(const string& cmd) {
 DynamicFunction::DynamicFunction(const string& source,
                                  const string& parameters){
 
-    //LOG(INFO) << "Creating DynamicFunction" << source << parameters;
+    LOG(DEBUG) << "Creating DynamicFunction" << source << parameters;
 
     // Transform comma-separated list into parameters map
     map<string, string> parmap;
@@ -52,10 +52,10 @@ DynamicFunction::DynamicFunction(const string& source,
         }
     }
 
-    //LOG(INFO) << " Parameter map created";
+    LOG(DEBUG) << " Parameter map created";
     // Render the source with the given parameters
     string newsource = render(source, parmap);
-    //LOG(INFO) << " Rendered source = " << newsource;
+    LOG(DEBUG_LONG) << " Rendered source = " << newsource;
     this->rendered_source.append(newsource);
 }
 
@@ -82,8 +82,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
     // Write the output into the temporal file 
     tmpfile << this->rendered_source;
     tmpfile.close();
-    LOG(INFO) << "Saving into " << filename << " rendered source: " \
-        << this->rendered_source;
+    LOG(DEBUG) << "Saving rendered source to " << filename;
 
     // Compile with -fPIC and -shared flags in addition to the original ones
     string libname = "/tmp/doping_tmp_object" + uid + ".so";
@@ -119,7 +118,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
 }
 
 DynamicFunction::~DynamicFunction(){
-    LOG(INFO) << "Dynamic Function destructed";
+    LOG(DEBUG) << "Dynamic Function destructed";
 
 }
 

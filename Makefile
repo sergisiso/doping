@@ -22,6 +22,10 @@ test: compile
 examples: compile
 	cd examples && ./run_examples.sh  # Integration tests
 
+quickrun: compile
+	cd examples/quick_examples/multiplematrixmult/ && make doping
+	cd examples/quick_examples/multiplematrixmult/ && make rundoping
+
 clean:
 	rm -rf ./src/clang/__pycache__ ./src/codegen/CodeTransformations/__pycache__
 	rm -rf ./src/codegen/DopingAST/__pycache__ ./src/codegen/__pycache__ ./src/codegen/test/__pycache__

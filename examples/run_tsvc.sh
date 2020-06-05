@@ -5,6 +5,7 @@ cd benchmark/scripts
             --parameters RUNTIME_ALL \
             --isa avx2 \
             --results test \
+            --benchmark LOOP_REROLLING \
             --cmd-prefix 'dope --'
-#            --run-locally \
-#            --benchmark LINEAR_DEPENDENCE \
+
+ #           --run-locally

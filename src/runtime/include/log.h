@@ -6,45 +6,52 @@
 using namespace std;
 
 enum typelog {
-    DEBUG,
-    INFO,
-    WARN,
-    ERROR
+    DEBUG_LONG =3,
+    DEBUG = 2,
+    INFO = 1,
+    ERROR = -1
 };
 
 
 class LOG {
 public:
     LOG(typelog type) {
-        opened=false;
+        opened = false;
         msglevel = type;
-        verbose = (std::getenv("DOPING_VERBOSE") != NULL);
-        operator << ("["+getLabel(type)+"] ");
+        const char * var = std::getenv("DOPING_VERBOSE");
+        try{
+            level = std::stoi(var);
+        } catch (std::exception const &e){
+            level = 0; // By default just print ERRORS
+        }
+        if(msglevel <= level) {
+            opened = true;
+            fflush(NULL);
+            operator << ("["+getLabel(type)+"] ");
+        }
     }
     ~LOG() {
         if(opened) {
             cerr << endl;
         }
-        opened = false;
     }
     template<class T>
     LOG &operator<<(const T &msg) {
-        if(msglevel >= DEBUG && verbose) {
+        if(msglevel <= level) {
             cerr << msg;
-            opened = true;
         }
         return *this;
     }
 private:
     bool opened;
-    bool verbose;
     typelog msglevel;
+    int level;
     inline string getLabel(typelog type) {
         string label;
         switch(type) {
+            case DEBUG_LONG: label = "DEBUG"; break;
             case DEBUG: label = "DEBUG"; break;
             case INFO:  label = "INFO "; break;
-            case WARN:  label = "WARN "; break;
             case ERROR: label = "ERROR"; break;
         }
         return label;

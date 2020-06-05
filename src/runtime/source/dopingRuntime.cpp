@@ -25,16 +25,16 @@ int dopingRuntimeG(
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
     
-    LOG(INFO) << "Entering Doping Runtime with parameters: ";
-    LOG(INFO) << " - current_iteration = " << current_iteration;
-    //LOG(INFO) << " - name=" << loop->name;
-    LOG(INFO) << " - compiler_command = " << loop->compiler_command;
-    //LOG(INFO) << " - timer=" << loop->timer;
-    LOG(INFO) << " - iteration_start = " << loop->iteration_start;
-    LOG(INFO) << " - iteration_space = " << loop->iteration_space;
-    LOG(INFO) << " - source: " << loop->source;
-    //LOG(INFO) << " - stage = " << loop->stage;
-    LOG(INFO) << " - parameters = " << loop->parameters;
+    LOG(INFO) << "Entering Doping Runtime";
+    LOG(DEBUG) << " - current_iteration = " << current_iteration;
+    //LOG(DEBUG) << " - name=" << loop->name;
+    LOG(DEBUG) << " - compiler_command = " << loop->compiler_command;
+    //LOG(DEBUG) << " - timer=" << loop->timer;
+    LOG(DEBUG) << " - iteration_start = " << loop->iteration_start;
+    LOG(DEBUG) << " - iteration_space = " << loop->iteration_space;
+    LOG(DEBUG_LONG) << " - source: " << loop->source;
+    //LOG(DEBUG) << " - stage = " << loop->stage;
+    LOG(DEBUG) << " - parameters = " << loop->parameters;
         
     float progress = float(current_iteration) / \
                      (loop->iteration_space - loop->iteration_start);
@@ -66,7 +66,9 @@ int dopingRuntimeG(
         chrono::duration<double> tduration = tend - tstart;
         LOG(INFO) << "Compilation and linking took: " << tduration.count() \
             << " seconds.";
-        cout << "DopingRuntime:" <<  tduration.count() << " ";
+        if (std::getenv("DOPING_BENCHMARK") != NULL){
+            cout << "DopingRuntime: " <<  tduration.count() << " ";
+        }
 
         //unsigned lstart = va_arg(arguments, unsigned);
         //LOG(INFO) << "Argument: " << lstart;
@@ -75,10 +77,14 @@ int dopingRuntimeG(
         df->run(current_iteration, arguments);
         tend = chrono::system_clock::now();
         tduration = tend - tstart;
-        cout << "DynFunction:" <<  tduration.count() << " ";
+
+        if (std::getenv("DOPING_BENCHMARK") != NULL){
+            cout << "DynFunction: " <<  tduration.count() << " ";
+        }
 
         delete df;
         return 0; // Assume loop is finished (this may need a more careful solution)
+        //return continue_condition; // Run the baseline now (just for testing!!)
     }
 
     //loop->timer = doping_set_timer();
