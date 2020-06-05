@@ -17,6 +17,8 @@ typedef struct dopinginfo{
     const char * compiler_command;
     // Parameters to render the given source code.
     const char * parameters;
+    // Loop Name
+    const char * name;
     // Arguments to give to the re-compiled function. This should be all the
     // variables and references used inside the given source.
     int num_arguments;
@@ -36,6 +38,8 @@ typedef struct dopinginfoU{
     const char * compiler_command;
     // Parameters to render the given source code.
     const char * parameters;
+    // Loop Name
+    const char * name;
     // Arguments to give to the re-compiled function. This should be all the
     // variables and references used inside the given source.
     int num_arguments;

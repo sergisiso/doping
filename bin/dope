@@ -70,6 +70,7 @@ def main():
     new_compiler_command = args.compiler_command[:]
     new_compiler_command.append("-I" + os.environ['DOPING_ROOT'] + "/bin")
     new_compiler_command.append(dopingruntimepath)
+    new_compiler_command.append("-rdynamic")
     new_compiler_command.append("-ldl")
 
     # Find C/C++ files in the input command

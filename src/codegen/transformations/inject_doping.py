@@ -37,7 +37,7 @@ class InjectDoping(CodeTransformation):
         self._print_analysis(local_vars, pointers, written_scalars,
                              runtime_constants, fcalls)
 
-        if len(runtime_constants) < 1 or len(fcalls) > 0:
+        if len(runtime_constants) < 1: # or len(fcalls) > 0:
             print("    > No dynamic optimization applied.\n")
             return False
 
@@ -120,9 +120,15 @@ class InjectDoping(CodeTransformation):
         self._buffer.insertstr("#include <stdio.h>")
 
         # Write local functions called from the body loop.
-        # for f in node.function_call_analysis():
-        #    self._buffer.insert(" ".join([x.spelling for x in
-        #                                  f.get_definition().get_tokens()]))
+        for func in node.function_call_analysis():
+            func_def = func.get_definition()
+            if func_def is not None:
+                self._buffer.insertstr(func_def.result_type.spelling + " " +
+                                       func_def.displayname + ";")
+
+
+        #   self._buffer.insert(" ".join([x.spelling for x in
+        #                                 f.get_definition().get_tokens()]))
 
         if self._is_cpp:
             self._buffer.insertstr(r"extern \"C\" void function(")
@@ -182,6 +188,7 @@ class InjectDoping(CodeTransformation):
 
         self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
         self._buffer.insert("    .parameters = " + parameters_string + ",")
+        self._buffer.insert("    .name = \"" + str(node.location) + "\",")
         self._buffer.insert("};")
 
         # 2) Loop starting value

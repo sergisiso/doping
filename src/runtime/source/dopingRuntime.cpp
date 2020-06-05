@@ -15,19 +15,27 @@
 
 using namespace std;
 
+bool global_counter = 0;
+
 template <typename T, typename U>
 int dopingRuntimeG(
         T current_iteration,
         T continue_condition,
         U * loop,
         va_list arguments){
-
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
+
+    // Forbid nested Doping run-times for now
+    if (global_counter > 0) return continue_condition;
+    global_counter = 1;
     
-    LOG(INFO) << "Entering Doping Runtime";
+    if(loop->name == NULL){
+        LOG(INFO) << "Entering unnamed Doping Runtime.";
+    }else{
+        LOG(INFO) << "Entering Doping Runtime for loop " << loop->name << ".";
+    }
     LOG(DEBUG) << " - current_iteration = " << current_iteration;
-    //LOG(DEBUG) << " - name=" << loop->name;
     LOG(DEBUG) << " - compiler_command = " << loop->compiler_command;
     //LOG(DEBUG) << " - timer=" << loop->timer;
     LOG(DEBUG) << " - iteration_start = " << loop->iteration_start;
@@ -38,18 +46,16 @@ int dopingRuntimeG(
         
     float progress = float(current_iteration) / \
                      (loop->iteration_space - loop->iteration_start);
-    float threshold = 0.5;
+    //float threshold = 0.5;
 
     //if ( (progress < threshold) ){
     if ( true ){
         chrono::time_point<chrono::system_clock> tstart, tend;
         tstart = chrono::system_clock::now();
      
-        //LOG(INFO) << "Runtime Analysis of: " << loop->name ;
-        LOG(INFO) << "Loop at iteration: " << current_iteration << " (" \
-            << 100*progress \
-            << " %) (Est. Remaining time: " << 2/progress << " s)";
-        LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
+        LOG(INFO) << "Runtime Analysis: Loop at " << current_iteration << " (" \
+            << 100*progress << " %)"; // (ETC: " << 2/progress << " s)";
+        // LOG(INFO) << progress << " < " << threshold << " -> Decided to recompile";
         
         DynamicFunction * df;
 
@@ -60,11 +66,12 @@ int dopingRuntimeG(
             LOG(ERROR) << " Doping failed to dynamically optimize function with error:";
             LOG(ERROR) << e.what();
             LOG(ERROR) << "Continuing with baseline code.";
+            global_counter = 0;
             return continue_condition;
         }
         tend = chrono::system_clock::now();
         chrono::duration<double> tduration = tend - tstart;
-        LOG(INFO) << "Compilation and linking took: " << tduration.count() \
+        LOG(INFO) << "Render template, compilation and linking took: " << tduration.count() \
             << " seconds.";
         if (std::getenv("DOPING_BENCHMARK") != NULL){
             cout << "DopingRuntime: " <<  tduration.count() << " ";
@@ -83,6 +90,7 @@ int dopingRuntimeG(
         }
 
         delete df;
+        global_counter = 0;
         return 0; // Assume loop is finished (this may need a more careful solution)
         //return continue_condition; // Run the baseline now (just for testing!!)
     }

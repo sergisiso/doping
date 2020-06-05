@@ -20,7 +20,7 @@ debug: all
 release: CXXFLAGS += -O2
 release: all
 
-$(OBJ_DIR)/%.o: %.cpp
+$(OBJ_DIR)/%.o: %.cpp include/*
 	@mkdir -p $(@D)
 	$(CXX) $(CXXFLAGS) $(INCLUDE) -o $@ -c $<
 

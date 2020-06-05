@@ -81,14 +81,15 @@ int main (int argc, char **argv) {
 
     // Generate NUM_MASKS masks and filter im1 with them
     for (unsigned n = 0; n < num_masks; n++) {
-	// Generate a mask
-	for (unsigned i = 0; i < msk_size; i++)
-	    for (unsigned j = 0; j < msk_size; j++)
-		msk[i * msk_size + j] = (float)rand()/(float)(RAND_MAX) * 2;
+        // Generate a mask
+        for (unsigned i = 0; i < msk_size; i++)
+            for (unsigned j = 0; j < msk_size; j++)
+            msk[i * msk_size + j] = (float)rand()/(float)(RAND_MAX) * 2;
 
-	// Filter the image
-	for (unsigned m = 0; m < num_images; m++)
-	    filter ((float *) msk, msk_size, msk_size, (float *) im1, (float *) im2, img_size, img_size);
+        // Filter the image
+        for (unsigned m = 0; m < num_images; m++)
+            filter ((float *) msk, msk_size, msk_size, (float *) im1,
+                    (float *) im2, img_size, img_size);
     }
 
     std::cout << "Original image average: " << average((float *)im1, img_size) << "\n";
