@@ -1,5 +1,6 @@
 """ Implementation of InjectDoping transformation """
 
+import os
 from codegen.transformations.transformation import CodeTransformation
 
 
@@ -22,8 +23,10 @@ class InjectDoping(CodeTransformation):
     def _apply(self, node):
 
         print("Analyzing loop at " + str(node.location))
-        #if node.location.line < 910 or node.location.line > 5584:
-        #    return False
+        is_benchmark = os.getenv('DOPING_BENCHMARK')
+        if is_benchmark == '1':
+            if node.location.line < 910 or node.location.line > 5584:
+                return False
         self._loop_id = self._loop_id + 1
         loop_id = self._loop_id
 
@@ -37,7 +40,7 @@ class InjectDoping(CodeTransformation):
         self._print_analysis(local_vars, pointers, written_scalars,
                              runtime_constants, fcalls)
 
-        if len(runtime_constants) < 1: # or len(fcalls) > 0:
+        if len(runtime_constants) < 1:
             print("    > No dynamic optimization applied.\n")
             return False
 
