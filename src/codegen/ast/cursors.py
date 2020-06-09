@@ -270,7 +270,9 @@ class ForCursor (DopingCursor):
         """Return the body of the loop with an appropriate format.
 
         If a referencing variables is given, any token that matches that
-        variable will be prefixed with the C referencing operator (*).
+        variable will be prefixed with the C referencing operator * and
+        wrapped with paranthesis to maintain operator precedende.
+        e.g. "j++;" -> "(*j)++;"
         """
 
         body = self.get_body()
@@ -287,7 +289,7 @@ class ForCursor (DopingCursor):
             # matches one of them, add the * prefix.
             if referencing_variables and \
                 token.spelling in referencing_variables:
-                string += " *" + token.spelling
+                string += " (*" + token.spelling + ")"
             else:
                 string += " " + token.spelling
 
