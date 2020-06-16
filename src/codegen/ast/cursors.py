@@ -129,7 +129,7 @@ class DopingCursor(Cursor):
         return self._find(CursorKind.INCLUSION_DIRECTIVE, True)
 
     def find_declarations(self, outermostonly=False, exclude_headers=True):
-        return self._find(CursorKind.DECL_STMT)
+        return self._find(CursorKind.VAR_DECL)
 
     def find_functions(self, outermostonly=False, exclude_headers=True):
         return self._find(CursorKind.FUNCTION_DECL, exclude_headers)
@@ -435,8 +435,8 @@ class ForCursor (DopingCursor):
 
         # 1. Find local variables: Declared inside the loop.
         for decl in self.find_declarations():
-            local_vars.append(decl.get_children()[0])
-            local_vars_names.append(decl.get_children()[0].displayname)
+            local_vars.append(decl)
+            local_vars_names.append(decl.displayname)
 
         # 2. Find variables that are written in the loop.
         for assignment in self.find_assignments():
