@@ -130,7 +130,7 @@ class Rewriter:
 
         :param str string: String to insert.
         '''
-        self.insert("\"" + string + "\\n\"")
+        self.insert("\"" + string.replace('\\', '\\\\').replace('\"', '\\"') + "\\n\"")
 
     def insertstr_nolb(self, string):
         '''

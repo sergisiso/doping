@@ -134,7 +134,7 @@ class InjectDoping(CodeTransformation):
         #                                 f.get_definition().get_tokens()]))
 
         if self._is_cpp:
-            self._buffer.insertstr(r"extern \"C\" void function(")
+            self._buffer.insertstr(r'extern "C" void function(')
         else:
             self._buffer.insertstr(r"void function(")
         self._buffer.insertstr(iteration_type + " dopingCurrentIteration,")
@@ -161,6 +161,9 @@ class InjectDoping(CodeTransformation):
         list_of_va_args = []
         for pointer in pointers:
             pointer_type = pointer.type.spelling
+            # Argument array declaration symbol in not valid in a declaration
+            # statement, transform to pointer syntax.
+            pointer_type = pointer_type.replace('[]', '*')
             self._buffer.insertstr(pointer_type + " " + pointer.displayname +
                                    " = va_arg(args, " + pointer_type + ");")
             list_of_va_args.append(pointer.displayname)
