@@ -152,7 +152,11 @@ class InjectDoping(CodeTransformation):
 
         # Write delayed evaluated invariants
         for invar in runtime_constants:
-            self._buffer.insertstr("const " + invar.type.spelling + " " +
+            if self._is_cpp:
+                qualifier = "constexpr "
+            else:
+                qualifier = "const "
+            self._buffer.insertstr(qualifier + invar.type.spelling + " " +
                                    invar.displayname +
                                    " = /*<DOPING " +
                                    invar.displayname + " >*/;")
@@ -179,6 +183,10 @@ class InjectDoping(CodeTransformation):
                                    " = va_arg(args, " + vtype + ");")
             list_of_va_args.append("&" + var.displayname)
             ref_vars.append(var.displayname)
+
+        # If the loop had a pragma, insert it back
+        if node.location.line in self._for_loop_pragmas:
+            self._buffer.insertstr(self._for_loop_pragmas[node.location.line])
 
         self._buffer.insertstr_nolb(
             "for(" + node.cond_variable_type() +  " " + node.cond_variable() +
@@ -218,6 +226,9 @@ class InjectDoping(CodeTransformation):
         # Write original loop with time exit condition
         self._buffer.insert("")
         self._buffer.insert("// Unmodified loop")
+        # If the loop had a pragma, insert it back
+        if node.location.line in self._for_loop_pragmas:
+            self._buffer.insert(self._for_loop_pragmas[node.location.line])
         self._buffer.insert("for(; (" + node.end_condition_string())
         # self._buffer.insertpl(" ) && time(NULL) < "+timevar+";")
         self._buffer.insertpl(" );")
