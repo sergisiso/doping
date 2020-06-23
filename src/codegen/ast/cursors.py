@@ -200,6 +200,9 @@ class BinaryOperatorCursor (DopingCursor):
     def operator(self):
         lhs_len = len([x for x in self.get_children()[0].get_tokens()])
         tokens = [x.spelling for x in self.get_tokens()]
+        # No Operator or RHS found
+        if lhs_len >= len(tokens):
+            return None
         return tokens[lhs_len]
 
 class DeclarationCursor (DopingCursor):
@@ -278,6 +281,7 @@ class ForCursor (DopingCursor):
         body = self.get_body()
         string = ""
         line = self.location.line
+        after_punctuation = False
 
         # We need to join the tokens using ' ' and '\n' appropriately.
         for token in body.get_tokens():
@@ -291,7 +295,17 @@ class ForCursor (DopingCursor):
                 token.spelling in referencing_variables:
                 string += " (*" + token.spelling + ")"
             else:
-                string += " " + token.spelling
+                if token.kind.name == "PUNCTUATION":
+                    # We make a temporary flag to not affect next condition
+                    next_after_punctuation = True
+                elif after_punctuation:
+                    next_after_punctuation = False
+                else:
+                    next_after_punctuation = False
+                    string += " "
+                after_punctuation = next_after_punctuation
+
+                string += token.spelling
 
         # If it is a single statement for (no enclosing '}') it needs a ';'
         if string[-1] != "}":

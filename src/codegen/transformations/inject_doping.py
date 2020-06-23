@@ -14,21 +14,24 @@ class InjectDoping(CodeTransformation):
         self._loop_id = 0
         self._is_cpp = is_cpp
 
+        # Globals shared between methods
+        self._local_vars = None
+        self._pointers = None
+        self._written_scalars = None
+        self._runtime_invariants = None
+        self._fcalls = None
+
     def _candidates(self):
         return self._ast.find_loops(True, True)
 
     def _static_analysis(self, node):
-        return True
-
-    def _apply(self, node):
-
         print("Analyzing loop at " + str(node.location))
+
+        # Special condition for Doping Benchmarking of TSVC test suite, ignore otherwise
         is_benchmark = os.getenv('DOPING_BENCHMARK')
         if is_benchmark == '1':
             if node.location.line < 910 or node.location.line > 5584:
                 return False
-        self._loop_id = self._loop_id + 1
-        loop_id = self._loop_id
 
         # Analyse the loop variables
         local_vars, pointers, written_scalars, runtime_constants = \
@@ -46,6 +49,19 @@ class InjectDoping(CodeTransformation):
 
         print("    > Creating dynamically optimized version of the loop.\n")
 
+        self._local_vars = local_vars
+        self._pointers = pointers
+        self._written_scalars = written_scalars
+        self._runtime_invariants = runtime_constants
+        self._fcalls = fcalls
+
+        return True
+
+    def _apply(self, node):
+
+        # Get a unique id in this file for this transformation
+        self._loop_id = self._loop_id + 1
+
         # Choose signed or unsigned version
         if node.cond_variable_type() == "int":
             iteration_type = "int"
@@ -56,11 +72,12 @@ class InjectDoping(CodeTransformation):
             struct_type = "dopinginfoU"
             rtfunc_name = "dopingRuntimeU"
 
-        # Include doping runtime
+        # Include doping runtime at the top if it doesn't exist already
         self._buffer.goto_line(1)
         include_string = "#include \"doping.h\""
         if self._buffer.get_content() != include_string:
             self._buffer.insert(include_string)
+            self._buffer.insert("#include <stdio.h>")
 
         # Comment old code
         self._buffer.goto_original_line(node.get_start())
@@ -75,46 +92,95 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("{  // start a doping scope")
 
         # Convert runtime constant values into strings with sprintf
-        # if len(runtime_constants) > 0  # For now this is always true
+        # e.g:
+        #     char dopingRuntimeVal_X[100];
+        #     sprintf(dopingRuntimeVal_X, "A:%d,B:%f", A, B);
 
-        # Unique string identifier
-        parameters_string = "dopingRuntimeVal_" + str(loop_id)
+        # Create Unique string identifier
+        parameters_string = "dopingRuntimeVal_" + str(self._loop_id)
         # Declare the string (array of char)
         self._buffer.insert("char " + parameters_string + "[100];")
-        # Populate with a sprintf call
+        # Populate the format and parameters list
         format_list = []
         parameters_list = []
-        for idx, var in enumerate(runtime_constants):
+        for var in self._runtime_invariants:
             format_specifier = None
             if var.type.spelling in ('int', 'short', 'long'):
                 format_specifier = "%d"
             elif var.type.spelling in ('unsigned int', 'unsigned long'):
                 format_specifier = "%u"
-            elif var.type.spelling in ('float'):
+            elif var.type.spelling in ('float',):
                 format_specifier = "%f"
-            elif var.type.spelling in ('double'):
+            elif var.type.spelling in ('double',):
                 format_specifier = "%lf"
             else:
                 print("    > Tried dynamic optimization but found unsupported"
                       " type.\n")
                 return False
-
             format_list.append(var.displayname + ":" + format_specifier)
             parameters_list.append(var.displayname)
+        # Ensemble the sprinf call
         self._buffer.insert("sprintf(" + parameters_string + ", ")
         self._buffer.insertpl("\""+",".join(format_list) + "\", ")
         self._buffer.insertpl(", ".join(parameters_list) + ");")
 
 
-        # 1) Generate the dopinginfo object
-        self._buffer.insert(struct_type + " info" + str(loop_id) + " = {")
-        self._buffer.insert("    .iteration_start = " +
-                            node.cond_starting_value() + ",")
-        self._buffer.insert("    .iteration_space = " +
-                            node.cond_end_value() + ",")
+        # Generate the dopinginfo object
+        self._buffer.insert(struct_type + " info" + str(self._loop_id) + " = {")
+        self._buffer.insert("    .iteration_start = " + node.cond_starting_value() + ",")
+        self._buffer.insert("    .iteration_space = " + node.cond_end_value() + ",")
         self._buffer.insert("    .source = " + r'''"\n"''')
+        # Insert the dynamic template of the code here (return the args that it will need)
+        list_of_args = self._generate_dynamic_function(node, iteration_type)
+        # Continue dopinginfo object
+        self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
+        self._buffer.insert("    .parameters = " + parameters_string + ",")
+        self._buffer.insert("    .name = \"" + str(node.location) + "\",")
+        self._buffer.insert("};")
 
-        # Dynamic versrion of the code
+        # Convert the loop into a while construct
+        # First start with the initialization expression
+        self._buffer.insert(node.initialization_string()+";")
+
+        # Then the while construct with the Doping Runtime call
+        self._buffer.insert("while(" + rtfunc_name + "(" +
+                            node.cond_variable() + ", " +
+                            node.end_condition_string() + ", " +
+                            "&info" + str(self._loop_id) + ", " +
+                            ", ".join(list_of_args))
+
+        if False:
+            self._buffer.insertpl(", " + node.cond_variable())
+            for var in self._pointers:
+                self._buffer.insertpl(", " + var.displayname)
+
+        self._buffer.insertpl(")){")
+        self._buffer.increase_indexation()
+
+        # Write original loop
+        self._buffer.insert("")
+        self._buffer.insert("// Unmodified loop")
+        # If the loop had a pragma, insert it back
+        if node.location.line in self._for_loop_pragmas:
+            self._buffer.insert(self._for_loop_pragmas[node.location.line])
+
+        self._buffer.insert("for(; (" + node.end_condition_string())
+        # self._buffer.insertpl(" ) && time(NULL) < "+timevar+";")
+        self._buffer.insertpl(" );")
+        self._buffer.insertpl(node.increment_string() + ")")
+        self._buffer.increase_indexation()
+        self._buffer.insertpl(node.body_string())  # This breaks indentation
+        self._buffer.decrease_indexation()
+        self._buffer.decrease_indexation()
+        self._buffer.insert("} //end while loop")
+        self._buffer.insert("} //close doping scope")
+        self._buffer.insert("")
+
+    def _generate_dynamic_function(self, node, iteration_type):
+        """ Insert the dynamic function template string and return the
+        variadic arguments that the created function will need."""
+
+        # Replicate preprocessor macros until this point
 
         # Write function definition with pointers and written_scalars
         for include in node.find_file_includes():
@@ -122,21 +188,21 @@ class InjectDoping(CodeTransformation):
         self._buffer.insertstr("#include <stdarg.h>")
         self._buffer.insertstr("#include <stdio.h>")
 
-        # Write local functions called from the body loop.
-        for func in node.function_call_analysis():
+        # Write local (defined in the same file) functions called from the body loop.
+        # This will be found at link time if the -rdymaic -ldl are included.
+        # TODO: Remove imported function calls
+        for func in self._fcalls:
             func_def = func.get_definition()
             if func_def is not None:
                 self._buffer.insertstr(func_def.result_type.spelling + " " +
                                        func_def.displayname + ";")
 
-
-        #   self._buffer.insert(" ".join([x.spelling for x in
-        #                                 f.get_definition().get_tokens()]))
-
+        # Always use the C ABI
         if self._is_cpp:
             self._buffer.insertstr(r'extern "C" void function(')
         else:
             self._buffer.insertstr(r"void function(")
+
         self._buffer.insertstr(iteration_type + " dopingCurrentIteration,")
         self._buffer.insertstr("va_list args){")
 
@@ -146,12 +212,12 @@ class InjectDoping(CodeTransformation):
         # self._buffer.insertstr("va_list args; va_copy(args, *arguments);")
 
         # Declare local variables
-        for var in local_vars:
-            vtype = var.type.spelling
-            self._buffer.insertstr(vtype + " " + var.displayname + ";")
+        #for var in local_vars:
+        #    vtype = var.type.spelling
+        #    self._buffer.insertstr(vtype + " " + var.displayname + ";")
 
-        # Write delayed evaluated invariants
-        for invar in runtime_constants:
+        # Write a DOPING substitution template to specialize runtime invariants
+        for invar in self._runtime_invariants:
             if self._is_cpp:
                 qualifier = "constexpr "
             else:
@@ -161,13 +227,20 @@ class InjectDoping(CodeTransformation):
                                    " = /*<DOPING " +
                                    invar.displayname + " >*/;")
 
-        # Get pointers
+        # Get pointers or arrays used in the loop
         list_of_va_args = []
-        for pointer in pointers:
+        for pointer in self._pointers:
             pointer_type = pointer.type.spelling
+            # TODO: We currently lose the dimension information here:
+            # e.g: const float [4] -> const float a*;
+
             # Argument array declaration symbol in not valid in a declaration
             # statement, transform to pointer syntax.
-            pointer_type = pointer_type.replace('[]', '*')
+            dims = pointer_type.count('[')
+            if dims > 0:
+                first_square_bracket = pointer_type.index('[')
+                pointer_type = pointer_type[:first_square_bracket] + ("*" * dims)
+
             self._buffer.insertstr(pointer_type + " " + pointer.displayname +
                                    " = va_arg(args, " + pointer_type + ");")
             list_of_va_args.append(pointer.displayname)
@@ -177,7 +250,7 @@ class InjectDoping(CodeTransformation):
         # references to this variable with the C * operator in:
         # node.get_* functions in the loop body and conditions.
         ref_vars = []
-        for var in written_scalars:
+        for var in self._written_scalars:
             vtype = var.type.spelling + "*"  # Add pointer indetifier
             self._buffer.insertstr(vtype + " " + var.displayname +
                                    " = va_arg(args, " + vtype + ");")
@@ -197,58 +270,8 @@ class InjectDoping(CodeTransformation):
             self._buffer.insertstr(line)
 
         self._buffer.insert(r'''"}\n",''')
+        return list_of_va_args
 
-        # Continue dopinginfo object
-
-        self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
-        self._buffer.insert("    .parameters = " + parameters_string + ",")
-        self._buffer.insert("    .name = \"" + str(node.location) + "\",")
-        self._buffer.insert("};")
-
-        # 2) Loop starting value
-        self._buffer.insert(node.initialization_string()+";")
-
-        # 3) Doping Runtime call
-        self._buffer.insert("while(" + rtfunc_name + "(" +
-                            node.cond_variable() + ", " +
-                            node.end_condition_string() + ", " +
-                            "&info" + str(loop_id) + ", " +
-                            ", ".join(list_of_va_args))
-
-        if False:
-            self._buffer.insertpl(", " + node.cond_variable())
-            for var in pointers:
-                self._buffer.insertpl(", " + var.displayname)
-
-        self._buffer.insertpl(")){")
-        self._buffer.increase_indexation()
-
-        # Write original loop with time exit condition
-        self._buffer.insert("")
-        self._buffer.insert("// Unmodified loop")
-        # If the loop had a pragma, insert it back
-        if node.location.line in self._for_loop_pragmas:
-            self._buffer.insert(self._for_loop_pragmas[node.location.line])
-        self._buffer.insert("for(; (" + node.end_condition_string())
-        # self._buffer.insertpl(" ) && time(NULL) < "+timevar+";")
-        self._buffer.insertpl(" );")
-        self._buffer.insertpl(node.increment_string() + ")")
-        self._buffer.increase_indexation()
-        self._buffer.insertpl(node.body_string())  # This breaks indentation
-        self._buffer.decrease_indexation()
-        self._buffer.decrease_indexation()
-        self._buffer.insert("} //end while loop")
-        self._buffer.insert("} //close doping scope")
-        self._buffer.insert("")
-
-    def _post_transformation(self):
-        # Add necessary includes
-        self._buffer.goto_line(1)
-        self._buffer.insert("#include <time.h>")
-        self._buffer.insert("#include <dlfcn.h>")
-        self._buffer.insert("#include <stdio.h>")
-        self._buffer.insert("#include <stdlib.h>")
-        self._buffer.insert("#include \"../../src/runtime/dopingRuntime.h\"")
 
     @staticmethod
     def _print_analysis(local_vars, pointers, written_scalars,
