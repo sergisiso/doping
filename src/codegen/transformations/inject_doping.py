@@ -124,7 +124,6 @@ class InjectDoping(CodeTransformation):
         self._buffer.insertpl("\""+",".join(format_list) + "\", ")
         self._buffer.insertpl(", ".join(parameters_list) + ");")
 
-
         # Generate the dopinginfo object
         self._buffer.insert(struct_type + " info" + str(self._loop_id) + " = {")
         self._buffer.insert("    .iteration_start = " + node.cond_starting_value() + ",")
@@ -132,6 +131,7 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("    .source = " + r'''"\n"''')
         # Insert the dynamic template of the code here (return the args that it will need)
         list_of_args = self._generate_dynamic_function(node, iteration_type)
+        self._buffer.insertpl(",")
         # Continue dopinginfo object
         self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
         self._buffer.insert("    .parameters = " + parameters_string + ",")
@@ -176,17 +176,35 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("} //close doping scope")
         self._buffer.insert("")
 
+    def _replicate_preprocessor(self, node):
+        before = []
+        after = []
+
+        with open(self._inputfile) as source:
+            lines = source.readlines()
+            for lnum, line in enumerate(lines):
+                if line.replace(" ", "").startswith("#"):
+                    # FIXME: What about multi-line (symbol \ continuation)
+                    # FIXME: Are some #pragma necessary (e.g. #pragma once)?
+                    if not line.startswith('#pragma'):
+                        if lnum < node.location.line - 1:
+                            before.append(line)
+                        else:
+                            after.append(line)
+        return before, after
+
+
     def _generate_dynamic_function(self, node, iteration_type):
         """ Insert the dynamic function template string and return the
         variadic arguments that the created function will need."""
 
-        # Replicate preprocessor macros until this point
-
-        # Write function definition with pointers and written_scalars
-        for include in node.find_file_includes():
-            self._buffer.insertstr(include[:-1])  # [:-1] to remove the \n
+        # Required libs
         self._buffer.insertstr("#include <stdarg.h>")
-        self._buffer.insertstr("#include <stdio.h>")
+
+        # Replicate preprocessor macros until this point
+        before, after = self._replicate_preprocessor(node)
+        for line in before:
+            self._buffer.insertstr(line.replace('\n','')) # Remove \n
 
         # Write local (defined in the same file) functions called from the body loop.
         # This will be found at link time if the -rdymaic -ldl are included.
@@ -268,8 +286,13 @@ class InjectDoping(CodeTransformation):
 
         for line in node.body_string(referencing_variables=ref_vars).split("\n"):
             self._buffer.insertstr(line)
+        self._buffer.insertstr('}')
 
-        self._buffer.insert(r'''"}\n",''')
+        # There can be open pre-processor conditionals that need closing after
+        # the function
+        for line in after:
+            self._buffer.insertstr(line.replace("\n", ''))
+
         return list_of_va_args
 
 
@@ -283,7 +306,7 @@ class InjectDoping(CodeTransformation):
                   var.type.spelling + ")")
         print("    Arrays/Pointers: ")
         for pointer in pointers:
-            var = pointer.get_children()[0]
+            var = pointer
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Scalar writes: ")

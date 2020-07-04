@@ -17,6 +17,7 @@ class DopingCursor(Cursor):
     # call the instantiate_node to remain inside Doping functionality
     # at the moment the traversal methods implemented are:
     #  -  get_children()
+    _parent = None
 
     @staticmethod
     def _instantiate_node(node):
@@ -38,6 +39,14 @@ class DopingCursor(Cursor):
         Calls Clang AST get_children method but it then instantiate
         the object to proper Doping Cursor subclass.
         '''
+        # Retrofit the parent information into the child
+        #children_list = []
+        #for child in super(DopingCursor, self).get_children():
+        #    DopingCursor._instantiate_node(child)
+        #    child._parent = self
+        #    children_list.append(child)
+        #return children_list
+
         return [DopingCursor._instantiate_node(x)
                 for x in super(DopingCursor, self).get_children()]
 
@@ -457,6 +466,8 @@ class ForCursor (DopingCursor):
             var = assignment.get_children()[0]
             # If it has pointer operations ignore them until the variable
             # name is found. FIXME: Is this robust enough?
+            while var.kind == CursorKind.MEMBER_REF_EXPR:
+                var = var.get_children()[0]
             while var.kind == CursorKind.UNARY_OPERATOR:
                 var = var.get_children()[0]
             if var.type_is_pointer():
@@ -487,17 +498,28 @@ class ForCursor (DopingCursor):
             # if access.displayname == "mid":
             #     import pdb; pdb.set_trace()
             #     print(access.type.spelling)
+            if access.displayname == "hit":
+                import pdb; pdb.set_trace()
+            if access.displayname.startswith("operator"):
+                continue
+            while len(access.get_children()) > 0 and access.kind == CursorKind.UNEXPOSED_EXPR:
+                if access.get_children()[0].displayname == access.displayname:
+                    access = access.get_children()[0]
+                else:
+                    break
+            while access.kind == CursorKind.MEMBER_REF_EXPR:
+                access = access.get_children()[0]
             if (access.displayname not in runtime_constants_names) and \
                (access.displayname not in local_vars_names) and \
                (access.displayname not in written_scalars_names) and \
                (access.displayname not in pointer_vars_names) and \
                (access.displayname != ''):
                 if access.type_is_scalar() and \
-                   (access.get_children()[0].kind != CursorKind.CALL_EXPR):
+                   (access.kind != CursorKind.CALL_EXPR):
                     runtime_constants.append(access)
                     runtime_constants_names.append(access.displayname)
                 if access.type_is_pointer() and \
-                   (access.get_children()[0].kind != CursorKind.CALL_EXPR):
+                   (access.kind != CursorKind.CALL_EXPR):
                     pointer_vars.append(access)
                     pointer_vars_names.append(access.displayname)
 
