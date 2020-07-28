@@ -65,6 +65,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
 
     // Use /tmp but it may be system-specific and
     // could be a security issue (it is a shared folder).
+    // FIXME: It should maintain the same file extension as the original
     string filename = "/tmp/doping_tmp_file_" + uid + ".c";
 
     // Open a temporal file (is it possible to compile from a stream instead?)
@@ -83,6 +84,16 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
     tmpfile << this->rendered_source;
     tmpfile.close();
     LOG(DEBUG) << "Saving rendered source to " << filename;
+
+    if (std::getenv("DOPING_SAVE_FILES") != NULL){
+        string savefilename = "doping_loop_" + uid + ".c";
+        ofstream savefile(savefilename, ofstream::out | ofstream::trunc);
+        if(savefile.fail() || !savefile.is_open()){
+            throw std::runtime_error("Error opening " + savefilename);
+        }
+        savefile << this->rendered_source;
+        savefile.close();
+    }
 
     // Compile with -fPIC and -shared flags in addition to the original ones
     string libname = "/tmp/doping_tmp_object" + uid + ".so";

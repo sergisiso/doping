@@ -24,7 +24,7 @@ examples: compile
 
 quickrun: compile
 	cd examples/quick_examples/multiplematrixmult/ && make doping
-	cd examples/quick_examples/multiplematrixmult/ && make rundoping
+	cd examples/quick_examples/multiplematrixmult/ && DOPING_VERBOSE=1 make rundoping
 
 clean:
 	rm -rf ./src/clang/__pycache__ ./src/codegen/CodeTransformations/__pycache__
