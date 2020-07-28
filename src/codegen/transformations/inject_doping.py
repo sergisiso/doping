@@ -217,14 +217,27 @@ class InjectDoping(CodeTransformation):
         for line in before:
             self._buffer.insertstr(line.replace('\n','')) # Remove \n
 
-        # Write local (defined in the same file) functions called from the body loop.
-        # This will be found at link time if the -rdymaic -ldl are included.
-        # TODO: Remove imported function calls
+        # Function calls can be:
+        # - External (will be defined in the headers that are already copied)
+        # - Be in the original file (found at link time if the -rdymaic -ldl are included)
+        # - Be in the original file and have the attributes static and/or inline. We need to
+        #   copy these ones over to the dynamically optimized code.
         for func in self._fcalls:
             func_def = func.get_definition()
             if func_def is not None:
-                self._buffer.insertstr(func_def.result_type.spelling + " " +
-                                       func_def.displayname + ";")
+                tokens = [x.spelling for x in func.get_definition().get_tokens()]
+                attributes = tokens[:tokens.index(func.spelling)]
+                # FIXME: Actually the inlined or signatures should be in the appropriate
+                # place regarding the preprocessor statements, it should be merged with
+                # the _replicate_preprocessor functionality.
+                if 'static' in attributes or 'inline' in attributes:
+                    # FIXME: Check for function calls also inside func
+                    for line in func.get_definition().get_string().split('\n'):
+                        self._buffer.insertstr(line)
+                else:
+                    # Insert just the function signature
+                    self._buffer.insertstr(func_def.result_type.spelling + " " +
+                                           func_def.displayname + ";")
 
         # Always use the C ABI
         if self._is_cpp:

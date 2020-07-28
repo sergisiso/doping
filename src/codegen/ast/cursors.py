@@ -50,6 +50,12 @@ class DopingCursor(Cursor):
         return [DopingCursor._instantiate_node(x)
                 for x in super(DopingCursor, self).get_children()]
 
+    def get_definition(self):
+        node = super(DopingCursor, self).get_definition()
+        if node is not None:
+            return DopingCursor._instantiate_node(node)
+        return None
+
     def find_file_includes(self):
         # return filter(self.is_from_file, self.root.find_includes())
         # Clang implementation above does not work! FIX! Meanwhile ugly
@@ -86,11 +92,45 @@ class DopingCursor(Cursor):
     def get_end(self):
         return self.extent.end.line
 
-    def get_string(self):
-        return " ".join([x.spelling for x in self.get_tokens()])
+    def get_string(self, referencing_variables=None):
+        """Return the whole string that this node represents.
 
-    def contains_str(self, string):
-        return string in self.get_string()
+        If a referencing variables is given, any token that matches that
+        variable will be prefixed with the C referencing operator * and
+        wrapped with paranthesis to maintain operator precedende.
+        e.g. "j++;" -> "(*j)++;"
+        """
+
+        string = ""
+        line = self.location.line
+        after_punctuation = False
+
+        # We need to join the tokens using ' ' and '\n' appropriately.
+        for token in self.get_tokens():
+            while token.location.line > line:
+                if string[-1] == " ":
+                    string = string[:-1]
+                for _ in range(line, token.location.line):
+                    string = string + "\n"
+                line = token.location.line
+            if referencing_variables and token.spelling in referencing_variables:
+                # If a list of referencing variables is given and this token
+                # matches one of them, add the * prefix.
+                string += " (*" + token.spelling + ")"
+            elif token.kind.name == "PUNCTUATION":
+                # If we have a punctuation token (e.g. struct.element), do not
+                # add a whitespace after the token.
+                string += token.spelling
+            else:
+                string += token.spelling + " "
+
+        if string[-1] == " ":
+            string = string[:-1]
+        return string
+        #return " ".join([x.spelling for x in self.get_tokens()])
+
+    def contains_str(self, key):
+        return key in self.get_string()
 
     def str_position(self):
         name = str(self.location)
@@ -287,34 +327,7 @@ class ForCursor (DopingCursor):
         e.g. "j++;" -> "(*j)++;"
         """
 
-        body = self.get_body()
-        string = ""
-        line = self.location.line
-        after_punctuation = False
-
-        # We need to join the tokens using ' ' and '\n' appropriately.
-        for token in body.get_tokens():
-            while token.location.line > line:
-                for _ in range(line, token.location.line):
-                    string = string + "\n"
-                line = token.location.line
-            # If a list of referencing variables is given and this token
-            # matches one of them, add the * prefix.
-            if referencing_variables and \
-                token.spelling in referencing_variables:
-                string += " (*" + token.spelling + ")"
-            else:
-                if token.kind.name == "PUNCTUATION":
-                    # We make a temporary flag to not affect next condition
-                    next_after_punctuation = True
-                elif after_punctuation:
-                    next_after_punctuation = False
-                else:
-                    next_after_punctuation = False
-                    string += " "
-                after_punctuation = next_after_punctuation
-
-                string += token.spelling
+        string = self.get_body().get_string(referencing_variables=referencing_variables)
 
         # If it is a single statement for (no enclosing '}') it needs a ';'
         if string[-1] != "}":
@@ -495,6 +508,7 @@ class ForCursor (DopingCursor):
         runtime_constants = []
         runtime_constants_names = []
         for access in self.find_all_accesses():
+            # import pdb; pdb.set_trace()
             # if access.displayname == "mid":
             #     import pdb; pdb.set_trace()
             #     print(access.type.spelling)
