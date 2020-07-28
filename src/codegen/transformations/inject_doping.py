@@ -177,13 +177,17 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("")
 
     def _replicate_preprocessor(self, node):
+        """ Return all the proprocessor statements before and after
+        the selected node."""
+
         before = []
         after = []
+        inside_comment = False
 
         with open(self._inputfile) as source:
             lines = source.readlines()
             for lnum, line in enumerate(lines):
-                if line.replace(" ", "").startswith("#"):
+                if line.replace(" ", "").startswith("#") and not inside_comment:
                     # FIXME: What about multi-line (symbol \ continuation)
                     # FIXME: Are some #pragma necessary (e.g. #pragma once)?
                     if not line.startswith('#pragma'):
@@ -191,6 +195,13 @@ class InjectDoping(CodeTransformation):
                             before.append(line)
                         else:
                             after.append(line)
+                if "/*" in line and not "*/" in line:
+                    inside_comment = True
+                if "*/" in line and not "/*" in line:
+                    inside_comment = False
+                # FIXME: What about these symbols inide strings: printf("\\*");
+                # FIXME: What about multiple comments in the same line, e.g:
+                # /* Comment 1 */ /* Comment 2 */
         return before, after
 
 
