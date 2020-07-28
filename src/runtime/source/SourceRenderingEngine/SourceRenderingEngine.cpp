@@ -125,6 +125,9 @@ string render(const string& source, const map<string, string>& context){
             output.push_back(source[cursor + 1]);
             cursor += 2;
         }
+
+
+        // Consume character
         else{
             output.push_back(source[cursor]);
             cursor++;

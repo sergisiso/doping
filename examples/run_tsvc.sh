@@ -6,8 +6,6 @@ cd benchmark/scripts
            --parameters RUNTIME_ATTRIBUTES \
            --isa avx2 \
            --results test \
-           --benchmark REDUCTIONS
-
-# --cmd-prefix 'dope --'
-
- #           --run-locally
+           --benchmark CONTROL_FLOW\
+           --cmd-prefix 'dope --' \
+           --run-locally

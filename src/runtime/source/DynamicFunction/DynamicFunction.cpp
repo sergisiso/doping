@@ -108,13 +108,13 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
     }
 
     // Link new object file to current executable
-    void * lib = dlopen(libname.c_str(), RTLD_NOW);
-    if (!lib) {
+    this->linked_library = dlopen(libname.c_str(), RTLD_NOW);
+    if (!this->linked_library) {
         LOG(ERROR) << "Failed to open library .so: \n" << dlerror();
         throw std::runtime_error("Failed to open library .so");
     }
 	LOG(DEBUG) << libname << " linked!";
-    this->functionPointer = (function_prototype) dlsym(lib, "function");
+    this->functionPointer = (function_prototype) dlsym(this->linked_library, "function");
     if(!this->functionPointer){
         LOG(ERROR) << "Failed to locate function: \n" << dlerror();
         throw std::runtime_error("Failed to locate function:");
@@ -130,6 +130,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
 
 DynamicFunction::~DynamicFunction(){
     LOG(DEBUG) << "Dynamic Function destructed";
+    dlclose(this->linked_library);
 
 }
 

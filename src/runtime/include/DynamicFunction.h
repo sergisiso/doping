@@ -13,6 +13,7 @@ class DynamicFunction {
 
     function_prototype functionPointer;
     std::string rendered_source;
+    void * linked_library;
 
     public:
         DynamicFunction(
