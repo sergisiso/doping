@@ -283,6 +283,12 @@ SCENARIO("Rendering simple strings") {
                 REQUIRE(render(original, context) == "string value  string");
             }
         }
+        WHEN("Condition tag with a complex expression found and part of the context"){
+            string original = "string /*<DOPING_IF N value + ( a * 3) >*/ string";
+            THEN ("String body do NOT appear in result"){
+                REQUIRE(render(original, context) == "string value + ( a * 3)  string");
+            }
+        }
     }
     GIVEN("Context {N, 0}"){
         map<string, string> context = {{"N", "0"}};

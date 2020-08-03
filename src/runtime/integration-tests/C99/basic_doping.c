@@ -94,5 +94,41 @@ int main(){
 
     printf("This example should make %d == 20\n", written_scalar);
 
+    printf("\nExample 4: Single statement with a conditional compile-time parameter\n");
+    printf("and in/out values\n");
+    dopinginfo info4 = {
+        .iteration_start = 0,
+        .iteration_space = 1,
+        .source = "\n"
+            "#include <stdio.h>\n"
+            "#include <stdarg.h>\n"
+            "int function(int a, va_list args){\n"
+            "   int * /*<DOPING_IF RESTRICT __restrict >*/ written_scalar = va_arg(args, int*);\n"
+            "   int * /*<DOPING_IF RESTRICT __restrict >*/ pointer_to_value = va_arg(args, int*);\n"
+            "   int N = /*<DOPING N >*/;"
+            "   for(int i=0; i < 1; i++) {\n"
+            "       printf(\"Compile-time execution\\n\");\n"
+            "       *written_scalar = N * *pointer_to_value;\n"
+            "   }\n"
+            "   printf(\"Compile-time value = %d \\n\", *written_scalar);\n"
+            "   return 0;\n"
+            "}\n",
+        .parameters="N:2,RESTRICT:1",
+        .compiler_command="gcc ",
+    };
+
+    int current4 = 0;
+    int end4 = 1;
+    written_scalar = 0;
+    while(dopingRuntime(current4, current4 < end4, &info4, &written_scalar, pointer_to_value)){
+        // Statement without dynamic optimization
+        for(; current4 < end4; current4++){
+            printf("Print statement without dynamic compilation :(\n");
+            written_scalar = *pointer_to_value;
+        }
+    }
+
+    printf("This example should make %d == 20\n", written_scalar);
+
     return 0;
 }
