@@ -130,7 +130,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
 
 DynamicFunction::~DynamicFunction(){
     LOG(DEBUG) << "Dynamic Function destructed";
-    dlclose(this->linked_library);
+    if (this->linked_library) dlclose(this->linked_library);
 
 }
 

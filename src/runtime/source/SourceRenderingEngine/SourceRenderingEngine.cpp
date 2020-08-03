@@ -13,6 +13,7 @@ using namespace std;
 // The chosen Start and End tokens are useful to keep the template syntax
 // parsable from editors.
 static const string STARTEXPR = "/*<DOPING ";
+static const string STARTEXPRIF = "/*<DOPING_IF ";
 static const string ENDEXPR = ">*/";
 
 
@@ -38,7 +39,7 @@ string render(const string& source, const map<string, string>& context){
     while (cursor < source.length()) {
         //LOG(INFO) << cursor << " " << source[cursor];
 
-        // If it starts with STARTEXPR, process the tag
+        // If it starts with STARTEXPR, process the substitution tag
         if ( source.compare(cursor, STARTEXPR.length(), STARTEXPR) == 0){
             // Consume start expression
             cursor += STARTEXPR.length();
@@ -48,7 +49,7 @@ string render(const string& source, const map<string, string>& context){
             // Skip additional whitespaces
             while(source[cursor] == ' ') cursor++;
 
-            // Get <VARIALBE>
+            // Get <VARIABLE>
             string word;
             while(source[cursor] != ' '){
                 if (!(isalnum(source[cursor]) || source[cursor] == '_')){
@@ -71,6 +72,42 @@ string render(const string& source, const map<string, string>& context){
             if (source.compare(cursor, ENDEXPR.length(), ENDEXPR) != 0){
                 throw ParseException();
             }
+            cursor += ENDEXPR.length();
+        }
+
+
+        // If it starts with STARTEXPRIF, process the condition tag
+        else if ( source.compare(cursor, STARTEXPRIF.length(), STARTEXPRIF) == 0){
+            // Consume start expression
+            cursor += STARTEXPRIF.length();
+
+            // Skip additional whitespaces
+            while(source[cursor] == ' ') cursor++;
+
+            // Get condition <VARIABLE>
+            string word;
+            while(source[cursor] != ' '){
+                if (!(isalnum(source[cursor]) || source[cursor] == '_')){
+                    string msg = "The token ";
+                    msg.push_back(source[cursor]);
+                    msg += ("is not an aphanumeric character.");
+                    throw ParseException(msg);
+                }
+                word.push_back(source[cursor]);
+                cursor++;
+            }
+            bool condition = (context.at(word) != "0");
+
+            // Skip additional whitespaces
+            while(source[cursor] == ' ') cursor++;
+
+            // Consume condition body
+            while(!(source.compare(cursor, ENDEXPR.length(), ENDEXPR) == 0)){
+                if(condition) output.push_back(source[cursor]);
+                cursor++;
+            }
+
+            //Consume end expression
             cursor += ENDEXPR.length();
         }
 
@@ -165,9 +202,11 @@ SCENARIO("Rendering simple strings") {
             }
         }
         WHEN("String substitition tag is found"){
-            string original = "string /*<DOPING N >*/ string";
+            string substitution = "string /*<DOPING N >*/ string";
+            string condition = "string /*<DOPING_IF N __restrict >*/ string";
             THEN ("An error is raised"){
-                REQUIRE_THROWS_AS(render(original, context), std::out_of_range);
+                REQUIRE_THROWS_AS(render(substitution, context), std::out_of_range);
+                REQUIRE_THROWS_AS(render(condition, context), std::out_of_range);
             }
         }
     }
@@ -238,6 +277,21 @@ SCENARIO("Rendering simple strings") {
             string original = "string /*<DOPING N< >*/ string";
             REQUIRE_THROWS_AS(render(original, context), ParseException);
         }
+        WHEN("Condition tag found and part of the context"){
+            string original = "string /*<DOPING_IF N value >*/ string";
+            THEN ("String body appear in result"){
+                REQUIRE(render(original, context) == "string value  string");
+            }
+        }
+    }
+    GIVEN("Context {N, 0}"){
+        map<string, string> context = {{"N", "0"}};
+        WHEN("Condition tag found and part of the context"){
+            string original = "string /*<DOPING_IF N value >*/ string";
+            THEN ("String body do NOT appear in result"){
+                REQUIRE(render(original, context) == "string  string");
+            }
+        }
     }
 }
 
@@ -260,6 +314,33 @@ TEST_CASE("Test rendering C source code") {
             "    }\n"
             "}\n";
         REQUIRE(render(original, context) == expected);
+    }
+    SECTION("Add restrict example"){
+        map<string, string> context_false = {{"N", "10"},{"array_restrict","0"}};
+        map<string, string> context_true = {{"N", "10"},{"array_restrict","1"}};
+        string original = "\n"
+            "int sum(){\n"
+            "    float * /*<DOPING_IF array_restrict __restrict >*/ array;\n"
+            "    for(int i; i < /*<DOPING N >*/; i++){\n"
+            "        array[i] = 0; /* Unrelated comment */\n"
+            "    }\n"
+            "}\n";
+        string expected_false = "\n"
+            "int sum(){\n"
+            "    float *  array;\n"
+            "    for(int i; i < 10; i++){\n"
+            "        array[i] = 0; /* Unrelated comment */\n"
+            "    }\n"
+            "}\n";
+        string expected_true = "\n"
+            "int sum(){\n"
+            "    float * __restrict  array;\n"
+            "    for(int i; i < 10; i++){\n"
+            "        array[i] = 0; /* Unrelated comment */\n"
+            "    }\n"
+            "}\n";
+        REQUIRE(render(original, context_false) == expected_false);
+        REQUIRE(render(original, context_true) == expected_true);
     }
 }
 #endif
