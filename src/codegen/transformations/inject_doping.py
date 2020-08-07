@@ -226,7 +226,9 @@ class InjectDoping(CodeTransformation):
             func_def = func.get_definition()
             if func_def is not None:
                 tokens = [x.spelling for x in func.get_definition().get_tokens()]
-                attributes = tokens[:tokens.index(func.spelling)]
+                attributes = []
+                if tokens:
+                    attributes.extend(tokens[:tokens.index(func.spelling)])
                 # FIXME: Actually the inlined or signatures should be in the appropriate
                 # place regarding the preprocessor statements, it should be merged with
                 # the _replicate_preprocessor functionality.
@@ -285,6 +287,8 @@ class InjectDoping(CodeTransformation):
 
             self._buffer.insertstr(pointer_type + " " + pointer.displayname +
                                    " = va_arg(args, " + pointer_type + ");")
+            # self._buffer.insertstr(pointer.displayname + " = (" + pointer_type + ")" +
+            #        "__builtin_assume_aligned(" + pointer.displayname + ",64);")
             list_of_va_args.append(pointer.displayname)
 
         # Get written_scalars (passed by reference - as a pointer)
@@ -294,9 +298,13 @@ class InjectDoping(CodeTransformation):
         ref_vars = []
         for var in self._written_scalars:
             vtype = var.type.spelling + "*"  # Add pointer indetifier
-            self._buffer.insertstr(vtype + " " + var.displayname +
+            self._buffer.insertstr(vtype + " " + var.displayname + "_dopingglobal" +
                                    " = va_arg(args, " + vtype + ");")
             list_of_va_args.append("&" + var.displayname)
+            # FIXME: This assumes no aliasing in this scalar, this need proper runtime
+            # checks.
+            self._buffer.insertstr(var.type.spelling + " " + var.displayname + " = " +
+                                   "(*" + var.displayname + "_dopingglobal);")
             ref_vars.append(var.displayname)
 
         # If the loop had a pragma, insert it back
@@ -308,8 +316,13 @@ class InjectDoping(CodeTransformation):
             " = dopingCurrentIteration;" + node.end_condition_string() + "; " +
             node.increment_string() + ")")
 
-        for line in node.body_string(referencing_variables=ref_vars).split("\n"):
+        #for line in node.body_string(referencing_variables=ref_vars).split("\n"):
+        for line in node.body_string().split("\n"):
             self._buffer.insertstr(line)
+
+        for var in self._written_scalars:
+            self._buffer.insertstr("(*" + var.displayname + "_dopingglobal) = " +
+                                   var.displayname +";")
         self._buffer.insertstr('}')
 
         # There can be open pre-processor conditionals that need closing after

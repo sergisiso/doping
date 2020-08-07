@@ -124,7 +124,7 @@ class DopingCursor(Cursor):
             else:
                 string += token.spelling + " "
 
-        if string[-1] == " ":
+        if len(string) > 0  and string[-1] == " ":
             string = string[:-1]
         return string
         #return " ".join([x.spelling for x in self.get_tokens()])

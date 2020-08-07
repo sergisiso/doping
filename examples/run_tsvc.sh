@@ -3,9 +3,10 @@
 export DOPING_BENCHMARK=1
 cd benchmark/scripts
 ./bench.py --compiler gcc \
-           --parameters RUNTIME_ATTRIBUTES \
+           --parameters RUNTIME_ALL \
            --isa avx2 \
            --results test \
-           --benchmark CONTROL_FLOW\
            --cmd-prefix 'dope --' \
            --run-locally
+
+           #--benchmark EXPANSION \
