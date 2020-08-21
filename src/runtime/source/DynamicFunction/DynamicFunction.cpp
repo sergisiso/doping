@@ -102,6 +102,16 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
 	string result = run_shell(command);
     LOG(DEBUG) << "Compilation output:";
     LOG(DEBUG) << result;
+    if (std::getenv("DOPING_SAVE_FILES") != NULL){
+        string savefilename = "doping_loop_" + uid + ".compiler.out";
+        ofstream savefile(savefilename, ofstream::out | ofstream::trunc);
+        if(savefile.fail() || !savefile.is_open()){
+            throw std::runtime_error("Error opening " + savefilename);
+        }
+        savefile << result;
+        savefile.close();
+    }
+
     if ( remove(filename.c_str())!= 0 ){
         throw std::runtime_error("Error deleting " + filename);
         LOG(ERROR) << "Could not delete the file:" << filename;
