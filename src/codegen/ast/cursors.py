@@ -30,6 +30,9 @@ class DopingCursor(Cursor):
         elif(node.kind == CursorKind.BINARY_OPERATOR):
             node.__class__ = BinaryOperatorCursor
             return node
+        elif (node.kind == CursorKind.CALL_EXPR):
+            node.__class__ = CallCursor
+            return node
         else:
             node.__class__ = DopingCursor
             return node
@@ -242,6 +245,17 @@ class DopingCursor(Cursor):
         return fcalls
 
 
+class CallCursor (DopingCursor):
+
+    def get_declaration(self):
+        definition = self.get_definition()
+
+        if definition:
+            return definition
+
+        # import pdb; pdb.set_trace()
+
+
 class BinaryOperatorCursor (DopingCursor):
     '''
     Subclass for AST nodes that containt a BinaryOperator.
@@ -439,12 +453,12 @@ class ForCursor (DopingCursor):
         # are statically unknown or which possibly have any observable
         # side-effects or do not provably return.
 
-    def has_multiple_conditions():
+    def has_multiple_conditions(self):
         # Last token from the first children of the condition contains
         # the operation
         operator = self.condition.get_children()[0].get_tokens()[-1]
         # .decode("utf-8")
-        return not (operator in BINARY_RELATIONAL_OPERATORS)
+        return not operator in BINARY_RELATIONAL_OPERATORS
 
     def variable_analysis(self):
         '''
@@ -512,8 +526,8 @@ class ForCursor (DopingCursor):
             # if access.displayname == "mid":
             #     import pdb; pdb.set_trace()
             #     print(access.type.spelling)
-            if access.displayname == "hit":
-                import pdb; pdb.set_trace()
+            # if access.displayname == "hit":
+            #     import pdb; pdb.set_trace()
             if access.displayname.startswith("operator"):
                 continue
             while len(access.get_children()) > 0 and access.kind == CursorKind.UNEXPOSED_EXPR:
