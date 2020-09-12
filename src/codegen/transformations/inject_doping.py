@@ -72,6 +72,26 @@ class InjectDoping(CodeTransformation):
             struct_type = "dopinginfoU"
             rtfunc_name = "dopingRuntimeU"
 
+        # Populate the format and parameters list
+        format_list = []
+        parameters_list = []
+        for var in self._runtime_invariants:
+            format_specifier = None
+            if var.type.spelling in ('int', 'short', 'long'):
+                format_specifier = "%d"
+            elif var.type.spelling in ('unsigned int', 'unsigned long'):
+                format_specifier = "%u"
+            elif var.type.spelling in ('float',):
+                format_specifier = "%f"
+            elif var.type.spelling in ('double',):
+                format_specifier = "%lf"
+            else:
+                print("    > Tried dynamic optimization but found unsupported"
+                      " type: {0}.\n".format(var.type.spelling))
+                return False
+            format_list.append(var.displayname + ":" + format_specifier)
+            parameters_list.append(var.displayname)
+
         # Include doping runtime at the top if it doesn't exist already
         self._buffer.goto_line(1)
         include_string = "#include \"doping.h\""
@@ -100,25 +120,6 @@ class InjectDoping(CodeTransformation):
         parameters_string = "dopingRuntimeVal_" + str(self._loop_id)
         # Declare the string (array of char)
         self._buffer.insert("char " + parameters_string + "[100];")
-        # Populate the format and parameters list
-        format_list = []
-        parameters_list = []
-        for var in self._runtime_invariants:
-            format_specifier = None
-            if var.type.spelling in ('int', 'short', 'long'):
-                format_specifier = "%d"
-            elif var.type.spelling in ('unsigned int', 'unsigned long'):
-                format_specifier = "%u"
-            elif var.type.spelling in ('float',):
-                format_specifier = "%f"
-            elif var.type.spelling in ('double',):
-                format_specifier = "%lf"
-            else:
-                print("    > Tried dynamic optimization but found unsupported"
-                      " type.\n")
-                return False
-            format_list.append(var.displayname + ":" + format_specifier)
-            parameters_list.append(var.displayname)
         # Ensemble the sprinf call
         self._buffer.insert("sprintf(" + parameters_string + ", ")
         self._buffer.insertpl("\""+",".join(format_list) + "\", ")
@@ -225,10 +226,18 @@ class InjectDoping(CodeTransformation):
         for func in self._fcalls:
             func_def = func.get_definition()
             if func_def is not None:
-                tokens = [x.spelling for x in func.get_definition().get_tokens()]
+                #print(func_def.spelling)
+
+                # FIXME: In AO func_def.spelling != func_def.get_tokens() !??
+                tokens = [x.spelling for x in func_def.get_tokens()]
                 attributes = []
                 if tokens:
                     attributes.extend(tokens[:tokens.index(func.spelling)])
+
+                # We could inline other functions if everything that they contain is defined
+                # inside the function (has no globals or function calls).
+                # FIXME: In fact this also affect the static inline functions below.
+
                 # FIXME: Actually the inlined or signatures should be in the appropriate
                 # place regarding the preprocessor statements, it should be merged with
                 # the _replicate_preprocessor functionality.
@@ -240,6 +249,17 @@ class InjectDoping(CodeTransformation):
                     # Insert just the function signature
                     self._buffer.insertstr(func_def.result_type.spelling + " " +
                                            func_def.displayname + ";")
+            else:
+                found = False
+                for file_func_decl in self._ast.find_functions():
+                    if file_func_decl.spelling == func.spelling:
+                        found = True
+                        # Insert just the function signature
+                        self._buffer.insertstr(file_func_decl.get_string() + ";")
+                if not found:
+                    print("Warning: Declaration of function ", func.spelling,
+                          " not found!")
+
 
         # Always use the C ABI
         if self._is_cpp:
