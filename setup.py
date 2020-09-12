@@ -18,7 +18,7 @@ AUTHOR_EMAIL = ("sergi.siso@stfc.ac.uk")
 
 # Requierements information
 BASE_PATH = os.path.dirname(os.path.abspath(__file__))
-SRC_PATH = os.path.join(os.path.join(BASE_PATH, "src"), "codegen")
+SRC_PATH = os.path.join(BASE_PATH, "src")
 PACKAGES = find_packages(
     where=SRC_PATH, exclude=["codegen.test", "codegen.test.*"])
 
