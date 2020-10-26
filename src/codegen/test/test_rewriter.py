@@ -1,5 +1,5 @@
-''' Py.test tests for the Rewriter class as implemented in Rewriter.py '''
 # pylint: disable=protected-access,redefined-outer-name
+''' Py.test tests for the Rewriter class as implemented in Rewriter.py '''
 
 import os
 import pytest
@@ -66,7 +66,7 @@ def test_load_from_file(samplefile, sample_rewriter):
     assert sample_rewriter._next_original_delta_index == [0, 1, 2]
 
 def test_get_content(sample_rewriter):
-    ''' Get the line  '''  # TODO: Change method name
+    ''' Get the contents of the line where the cursor is located '''
     assert sample_rewriter.get_content() == "Original1"
 
 def test_goto_line_in_range(sample_rewriter):

@@ -15,8 +15,8 @@ compile:
 	cp src/runtime/include/dopingRuntime.h bin/doping.h
 
 test: compile
-	pytest src/codegen  # Doping Unit tests
 	cd src/runtime && make test  # Runtime Unit tests
+	pytest src/codegen --compile  # Doping Unit tests
 	cd examples && ./run_examples.sh  # Integration tests
 
 examples: compile

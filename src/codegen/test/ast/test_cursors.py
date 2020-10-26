@@ -1,5 +1,6 @@
-''' Py.test tests for the DopingCursorBase class as
-implemented in DopingAST/DopingCursor.py '''
+# pylint: disable=no-self-use, protected-access
+''' Py.test tests for the DopingCursors class hierarchy as implemented in
+ast/cursor.py '''
 
 import os
 import pytest
@@ -7,14 +8,15 @@ from codegen.ast.translation_unit import DopingTranslationUnit
 from codegen.ast.cursors import DopingCursor
 
 
-class TestDopingCursorBase(object):
+class TestDopingCursorBase:
+    ''' Test the DopingCursor base class '''
 
     @pytest.fixture
-    def sampleCursor(self, tmpdir):
+    def sample_cursor(self, tmpdir):
         ''' Creates a temporary file called test.c with helloworld'''
         filename = os.path.join(str(tmpdir), "test.c")
-        with open(filename, "w") as f:
-            f.write(
+        with open(filename, "w") as source:
+            source.write(
                 '''
                 /* Hello World program */\n
                 #include<stdio.h>\n
@@ -25,8 +27,9 @@ class TestDopingCursorBase(object):
                 }\n
                 '''
             )
-        tu = DopingTranslationUnit(filename)
-        return tu.get_root()
+        sampletu = DopingTranslationUnit(filename)
+        return sampletu.get_root()
 
-    def test_fixtures_are_CursorBase(self, sampleCursor):
-        assert isinstance(sampleCursor, DopingCursor)
+    def test_cursor_base(self, sample_cursor):
+        ''' Test '''
+        assert isinstance(sample_cursor, DopingCursor)

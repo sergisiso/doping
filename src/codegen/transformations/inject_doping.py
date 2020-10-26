@@ -143,6 +143,8 @@ class InjectDoping(CodeTransformation):
         # First start with the initialization expression
         self._buffer.insert(node.initialization_string()+";")
 
+        if len(list_of_args) == 0:
+            list_of_args.append("NULL")
         # Then the while construct with the Doping Runtime call
         self._buffer.insert("while(" + rtfunc_name + "(" +
                             node.cond_variable() + ", " +
@@ -220,7 +222,7 @@ class InjectDoping(CodeTransformation):
 
         # Function calls can be:
         # - External (will be defined in the headers that are already copied)
-        # - Be in the original file (found at link time if the -rdymaic -ldl are included)
+        # - Be in the original file (found at link time if the -rdynamic -ldl are included)
         # - Be in the original file and have the attributes static and/or inline. We need to
         #   copy these ones over to the dynamically optimized code.
         for func in self._fcalls:
@@ -241,6 +243,10 @@ class InjectDoping(CodeTransformation):
                 # FIXME: Actually the inlined or signatures should be in the appropriate
                 # place regarding the preprocessor statements, it should be merged with
                 # the _replicate_preprocessor functionality.
+
+                for line in func.get_definition().get_string().split('\n'):
+                    self._buffer.insertstr(line)
+                continue
                 if 'static' in attributes or 'inline' in attributes:
                     # FIXME: Check for function calls also inside func
                     for line in func.get_definition().get_string().split('\n'):
@@ -357,16 +363,16 @@ class InjectDoping(CodeTransformation):
     def _print_analysis(local_vars, pointers, written_scalars,
                         runtime_constants, fcalls):
         stop = False
-        print("    Local vars: ")
+        print("    Local vars:")
         for var in local_vars:
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
-        print("    Arrays/Pointers: ")
+        print("    Arrays/Pointers:")
         for pointer in pointers:
             var = pointer
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
-        print("    Scalar writes: ")
+        print("    Scalar writes:")
         for var in written_scalars:
             if not var.displayname:
                 print(var.displayname)
@@ -376,7 +382,7 @@ class InjectDoping(CodeTransformation):
                 stop = True
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
-        print("    Vars for delayed evaluation: ")
+        print("    Vars for delayed evaluation:")
         for var in runtime_constants:
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")

@@ -55,10 +55,10 @@ def main():
         print("Error: Environment variable DOPING_ROOT not defined!")
         sys.exit(-1)
 
-    dopingruntimepath = os.path.join(os.environ['DOPING_ROOT'],
-                                     "bin/libdoping.so")
+    doping_header_path =  os.path.join(os.environ['DOPING_ROOT'], 'bin')
+    doping_runtime_path = os.path.join(doping_header_path, 'libdoping.so')
 
-    if not os.path.isfile(dopingruntimepath):
+    if not os.path.isfile(doping_runtime_path):
         print("Error: Can't find doping Runtime object file."
               " Is doping properly compiled?")
         sys.exit(-1)
@@ -68,8 +68,8 @@ def main():
     # an object file which has been transformed with doping before this
     # command invocation.
     new_compiler_command = args.compiler_command[:]
-    new_compiler_command.append("-I" + os.environ['DOPING_ROOT'] + "/bin")
-    new_compiler_command.append(dopingruntimepath)
+    new_compiler_command.append("-I" + doping_header_path)
+    new_compiler_command.append(doping_runtime_path)
     new_compiler_command.append("-rdynamic")
     new_compiler_command.append("-ldl")
 
