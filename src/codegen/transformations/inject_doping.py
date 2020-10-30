@@ -6,10 +6,11 @@ from codegen.transformations.transformation import CodeTransformation
 
 class InjectDoping(CodeTransformation):
     """ InjectDoping Transformation """
-    # pylint: disable=too-few-public-methods
+    # pylint: disable=too-few-public-methods, too-many-instance-attributes,
+    # pylint: disable=too-many-statements, too-many-branches
 
     def __init__(self, inputfile, outputfile, compiler_command="", is_cpp=False):
-        super(InjectDoping, self).__init__(inputfile, outputfile, compiler_command)
+        super().__init__(inputfile, outputfile, compiler_command)
         self.compiler_command = compiler_command
         self._loop_id = 0
         self._is_cpp = is_cpp
@@ -35,7 +36,7 @@ class InjectDoping(CodeTransformation):
 
         # Analyse the loop variables
         local_vars, pointers, written_scalars, runtime_constants = \
-                node.variable_analysis()
+            node.variable_analysis()
 
         # Analyse the function calls
         fcalls = node.function_call_analysis()
@@ -59,10 +60,10 @@ class InjectDoping(CodeTransformation):
 
     def _apply(self, node):
 
-        # Get a unique id in this file for this transformation
+        # Get a unique id to this loop for this transformation
         self._loop_id = self._loop_id + 1
 
-        # Choose signed or unsigned version
+        # Choose signed or unsigned version iteration variable
         if node.cond_variable_type() == "int":
             iteration_type = "int"
             struct_type = "dopinginfo"
@@ -72,7 +73,10 @@ class InjectDoping(CodeTransformation):
             struct_type = "dopinginfoU"
             rtfunc_name = "dopingRuntimeU"
 
-        # Populate the format and parameters list
+        # We will need to generate a string of values of the runtime invariants with
+        # an sprintf call, e.g: `sprintf(dopingRuntimeVal_X, "A:%d,B:%f", A, B);`. So
+        # we check that we can populate the format and parameters list here, otherwise
+        # we refuse to optimize the loop.
         format_list = []
         parameters_list = []
         for var in self._runtime_invariants:
@@ -97,18 +101,18 @@ class InjectDoping(CodeTransformation):
         include_string = "#include \"doping.h\""
         if self._buffer.get_content() != include_string:
             self._buffer.insert(include_string)
-            self._buffer.insert("#include <stdio.h>")
+            # self._buffer.insert("#include <stdio.h>")
 
         # Comment old code
         self._buffer.goto_original_line(node.get_start())
         self._buffer.insert("//  ---- CODE TRANSFORMED BY doping ----")
-        self._buffer.insert("//  ---- Old version from " + str(node.location) + "----------")
+        self._buffer.insert("//  ---- Old version from " + str(node.location) + "----")
         for _ in range((node.get_end() - node.get_start()) + 1):
             self._buffer.comment()
-        self._buffer.insert("")
 
-        # Generate new version of the loop
-        self._buffer.insert("//  --------- New version: ----------")
+        # Generate new version of the loop in a new scope
+        self._buffer.insert("")
+        self._buffer.insert("//  ---- New version: ----")
         self._buffer.insert("{  // start a doping scope")
 
         # Convert runtime constant values into strings with sprintf
@@ -134,28 +138,30 @@ class InjectDoping(CodeTransformation):
         list_of_args = self._generate_dynamic_function(node, iteration_type)
         self._buffer.insertpl(",")
         # Continue dopinginfo object
-        self._buffer.insert("    .compiler_command = " + "\"" + self.compiler_command + "\"" + ",")
+        self._buffer.insert("    .compiler_command = " + "\"" +
+                            self.compiler_command + "\"" + ",")
         self._buffer.insert("    .parameters = " + parameters_string + ",")
         self._buffer.insert("    .name = \"" + str(node.location) + "\",")
         self._buffer.insert("};")
 
         # Convert the loop into a while construct
-        # First start with the initialization expression
+
+        # First start with the initialization expression outside the while statement
         self._buffer.insert(node.initialization_string()+";")
 
+        # Then the while construct with the Doping Runtime call
+        # e.g.: while(dopingRuntime(i, i < 10, &info1, parameter1, parameter2 )){
         if len(list_of_args) == 0:
             list_of_args.append("NULL")
-        # Then the while construct with the Doping Runtime call
         self._buffer.insert("while(" + rtfunc_name + "(" +
                             node.cond_variable() + ", " +
                             node.end_condition_string() + ", " +
                             "&info" + str(self._loop_id) + ", " +
                             ", ".join(list_of_args))
 
-        if False:
-            self._buffer.insertpl(", " + node.cond_variable())
-            for var in self._pointers:
-                self._buffer.insertpl(", " + var.displayname)
+        # self._buffer.insertpl(", " + node.cond_variable())
+        # for var in self._pointers:
+        #       self._buffer.insertpl(", " + var.displayname)
 
         self._buffer.insertpl(")){")
         self._buffer.increase_indexation()
@@ -178,6 +184,7 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("} //end while loop")
         self._buffer.insert("} //close doping scope")
         self._buffer.insert("")
+        return True
 
     def _replicate_preprocessor(self, node):
         """ Return all the proprocessor statements before and after
@@ -198,15 +205,14 @@ class InjectDoping(CodeTransformation):
                             before.append(line)
                         else:
                             after.append(line)
-                if "/*" in line and not "*/" in line:
+                if "/*" in line and "*/"not in line:
                     inside_comment = True
-                if "*/" in line and not "/*" in line:
+                if "*/" in line and "/*" not in line:
                     inside_comment = False
                 # FIXME: What about these symbols inide strings: printf("\\*");
                 # FIXME: What about multiple comments in the same line, e.g:
                 # /* Comment 1 */ /* Comment 2 */
         return before, after
-
 
     def _generate_dynamic_function(self, node, iteration_type):
         """ Insert the dynamic function template string and return the
@@ -218,7 +224,7 @@ class InjectDoping(CodeTransformation):
         # Replicate preprocessor macros until this point
         before, after = self._replicate_preprocessor(node)
         for line in before:
-            self._buffer.insertstr(line.replace('\n','')) # Remove \n
+            self._buffer.insertstr(line.replace('\n', ''))  # Remove \n
 
         # Function calls can be:
         # - External (will be defined in the headers that are already copied)
@@ -228,7 +234,7 @@ class InjectDoping(CodeTransformation):
         for func in self._fcalls:
             func_def = func.get_definition()
             if func_def is not None:
-                #print(func_def.spelling)
+                # print(func_def.spelling)
 
                 # FIXME: In AO func_def.spelling != func_def.get_tokens() !??
                 tokens = [x.spelling for x in func_def.get_tokens()]
@@ -266,7 +272,6 @@ class InjectDoping(CodeTransformation):
                     print("Warning: Declaration of function ", func.spelling,
                           " not found!")
 
-
         # Always use the C ABI
         if self._is_cpp:
             self._buffer.insertstr(r'extern "C" void function(')
@@ -282,7 +287,7 @@ class InjectDoping(CodeTransformation):
         # self._buffer.insertstr("va_list args; va_copy(args, *arguments);")
 
         # Declare local variables
-        #for var in local_vars:
+        # for var in local_vars:
         #    vtype = var.type.spelling
         #    self._buffer.insertstr(vtype + " " + var.displayname + ";")
 
@@ -338,17 +343,17 @@ class InjectDoping(CodeTransformation):
             self._buffer.insertstr(self._for_loop_pragmas[node.location.line])
 
         self._buffer.insertstr_nolb(
-            "for(" + node.cond_variable_type() +  " " + node.cond_variable() +
+            "for(" + node.cond_variable_type() + " " + node.cond_variable() +
             " = dopingCurrentIteration;" + node.end_condition_string() + "; " +
             node.increment_string() + ")")
 
-        #for line in node.body_string(referencing_variables=ref_vars).split("\n"):
+        # for line in node.body_string(referencing_variables=ref_vars).split("\n"):
         for line in node.body_string().split("\n"):
             self._buffer.insertstr(line)
 
         for var in self._written_scalars:
             self._buffer.insertstr("(*" + var.displayname + "_dopingglobal) = " +
-                                   var.displayname +";")
+                                   var.displayname + ";")
         self._buffer.insertstr('}')
 
         # There can be open pre-processor conditionals that need closing after
@@ -358,11 +363,9 @@ class InjectDoping(CodeTransformation):
 
         return list_of_va_args
 
-
     @staticmethod
     def _print_analysis(local_vars, pointers, written_scalars,
                         runtime_constants, fcalls):
-        stop = False
         print("    Local vars:")
         for var in local_vars:
             print("        " + var.displayname + " (" +
@@ -379,7 +382,6 @@ class InjectDoping(CodeTransformation):
                 print(var.spelling)
                 print(var)
                 print(var.location)
-                stop = True
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Vars for delayed evaluation:")
@@ -387,5 +389,3 @@ class InjectDoping(CodeTransformation):
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Number of function calls: " + str(len(fcalls)))
-        # if stop:
-        #     exit(-1)
