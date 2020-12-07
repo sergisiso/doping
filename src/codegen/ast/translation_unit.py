@@ -3,7 +3,7 @@
 
 import os
 from clang.cindex import Index
-from codegen.ast.cursors import DopingCursor
+from codegen.ast.cursors import DopingRootCursor
 
 
 class DopingTranslationUnit():
@@ -40,7 +40,9 @@ class DopingTranslationUnit():
     def get_root(self):
         ''' Returns the DopingCursor that represents the AST root node. '''
         root = self._clang_tu.cursor
-        root.__class__ = DopingCursor
+        root.__class__ = DopingRootCursor
+        with open(self._filename, "r") as source:
+            root._source_code = source.read()
         return root
 
     def get_parse_arguments(self):
