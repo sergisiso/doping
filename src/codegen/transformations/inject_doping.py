@@ -101,7 +101,7 @@ class InjectDoping(CodeTransformation):
         include_string = "#include \"doping.h\""
         if self._buffer.get_content() != include_string:
             self._buffer.insert(include_string)
-            # self._buffer.insert("#include <stdio.h>")
+            self._buffer.insert("#include <stdio.h>")
 
         # Comment old code
         self._buffer.goto_original_line(node.get_start())
@@ -231,16 +231,18 @@ class InjectDoping(CodeTransformation):
         # - Be in the original file (found at link time if the -rdynamic -ldl are included)
         # - Be in the original file and have the attributes static and/or inline. We need to
         #   copy these ones over to the dynamically optimized code.
+        inlined_functions = []
         for func in self._fcalls:
-            func_def = func.get_definition()
+            func_def = func.find_definition()
             if func_def is not None:
-                # print(func_def.spelling)
+                print(f"    - Function '{func_def.spelling}' definition found in "
+                      f"{func_def.location}")
 
                 # FIXME: In AO func_def.spelling != func_def.get_tokens() !??
                 tokens = [x.spelling for x in func_def.get_tokens()]
                 attributes = []
-                if tokens:
-                    attributes.extend(tokens[:tokens.index(func.spelling)])
+                #if tokens:
+                #    attributes.extend(tokens[:tokens.index(func.spelling)])
 
                 # We could inline other functions if everything that they contain is defined
                 # inside the function (has no globals or function calls).
@@ -250,12 +252,15 @@ class InjectDoping(CodeTransformation):
                 # place regarding the preprocessor statements, it should be merged with
                 # the _replicate_preprocessor functionality.
 
-                for line in func.get_definition().get_string().split('\n'):
+                # Store/mark this function as already inlined
+                if func_def not in inlined_functions:
+                    inlined_functions.append(func_def)
+                for line in func_def.get_string().split('\n'):
                     self._buffer.insertstr(line)
                 continue
                 if 'static' in attributes or 'inline' in attributes:
                     # FIXME: Check for function calls also inside func
-                    for line in func.get_definition().get_string().split('\n'):
+                    for line in func_def.get_string().split('\n'):
                         self._buffer.insertstr(line)
                 else:
                     # Insert just the function signature
@@ -266,11 +271,21 @@ class InjectDoping(CodeTransformation):
                 for file_func_decl in self._ast.find_functions():
                     if file_func_decl.spelling == func.spelling:
                         found = True
+
+                        # Store/mark this function as already inlined
+                        if file_func_decl not in inlined_functions:
+                            inlined_functions.append(file_func_decl)
+
                         # Insert just the function signature
-                        self._buffer.insertstr(file_func_decl.get_string() + ";")
+                        for line in file_func_decl.get_string().split('\n'):
+                            self._buffer.insertstr(line)
+
+                        print("    - Only the function signature of ", func.spelling,
+                              " was found!")
                 if not found:
-                    print("Warning: Declaration of function ", func.spelling,
-                          " not found!")
+                    print(f"    - Declaration of function '{func.spelling}' in "
+                          f"{func.location}  not found. Assuming it is defined "
+                          "in imported headers.")
 
         # Always use the C ABI
         if self._is_cpp:

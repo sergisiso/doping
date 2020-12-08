@@ -26,9 +26,14 @@ int dopingRuntimeG(
     // If iteration space has finished, do nothing and return
     if (!continue_condition) return continue_condition;
 
+    // If the loop is too small, continue with the original code
+    // if (loop->iteration_space < 100) return continue_condition;
+
     // Forbid nested Doping run-times for now
     if (global_counter > 0) return continue_condition;
+
     global_counter = 1;
+
     
     if(loop->name == NULL){
         LOG(INFO) << "Entering unnamed Doping Runtime.";

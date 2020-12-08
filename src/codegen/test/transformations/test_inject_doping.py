@@ -200,8 +200,11 @@ class TestInjectDoping:
                 "  \n"
                 "  // Unmodified loop\n"
                 "  for(; (i < 10  ); i ++) {\n"
-                "printf (\"The const is %d.\\n\" ,constvar );\n"
-                "\n"
+            )
+        )
+        assert re.search(regexpr, output_source)
+        regexpr = (
+            re.escape(
                 "}\n"
                 "} //end while loop\n"
                 "} //close doping scope\n"
@@ -326,27 +329,28 @@ class TestInjectDoping:
         assert "const int constvar = /*<DOPING constvar >*/;" in dynopt_code
 
     def test_dynamic_code_with_preprocessor(self, input_file, output_file, capsys, compiler):
-        ''' Test a loop containing a runtime invariant '''
+        ''' Test a loop containing a runtime invariant and preprocessor statements outside
+        the dynamically compiled region.'''
 
         with open(input_file, "w") as source:
             source.write(
                 '''
                 /* Hello World program */\n
                 #include<stdio.h>\n
-                #ifndef VAR
-                #define VAR myvariable
-                #endif
+                #ifndef VAR\n
+                #define VAR myvariable\n
+                #endif\n
                 \n
                 int main(){\n
-                    int constvar = 3;
-                    #define MYOTHERVAR mysecondvariable
-                    for(int i=0; i<10; i++){
+                    int constvar = 3;\n
+                    #define MYOTHERVAR mysecondvariable\n
+                    for(int i=0; i<10; i++){\n
                         printf("The const is %d.\\n", constvar);\n
-                    }
-                    #define LOOPDONE
+                    }\n
+                    #define LOOPDONE\n
                     return 0;\n
                 }\n
-                #define LASTDEFINE
+                #define LASTDEFINE\n
                 '''
             )
 
@@ -386,3 +390,199 @@ class TestInjectDoping:
         assert "#define MYOTHERVAR mysecondvariable" not in dynopt_code[dynopt_start:]
         assert "#define LOOPDONE" in dynopt_code[dynopt_start:]
         assert "#define LASTDEFINE" in dynopt_code[dynopt_start:]
+
+    def test_dynamic_code_function_calls(self, input_file, output_file, capsys, compiler):
+        ''' Test a loop containing a runtime invariant and a function call inside the
+        dynamically compiled region.'''
+
+        with open(input_file, "w") as source:
+            source.write(
+                '''
+                /* Hello World program */\n
+                #include<stdio.h>\n
+
+                int add(int a, int b){\n
+                    return a + b;\n
+                }\n
+
+                int main(){\n
+                    int constvar = 3;
+                    for(int i=0; i<10; i++){
+                        int sum = add(constvar, 3);
+                        printf("The const is %d.\\n", sum);\n
+                    }
+                    return 0;\n
+                }\n
+                '''
+            )
+
+        # Initialize
+        doping_trans = InjectDoping(input_file, output_file, compiler.flags)
+        doping_trans.apply()
+        captured = capsys.readouterr()
+        print(captured.out)
+
+        with open(output_file, "r") as source:
+            output_source = source.read()
+
+        # It must identify 2 functions,
+        assert "Number of function calls: 2" in captured.out
+        # which shouldn't stop the dynamic optimization
+        assert "> Creating dynamically optimized version of the loop." in captured.out
+        # the 'add' function source is found in the file
+        assert "- Function 'add' definition found" in captured.out
+        # while the 'printf' function is not found
+        assert "- Declaration of function 'printf' " in captured.out
+        assert "Assuming it is defined in imported headers." in captured.out
+
+        # The generated code must include the headers and the found functions
+        dynopt_code = self._filter_dyn_code(output_source)
+        print(dynopt_code)
+        assert "#include<stdio.h>" in dynopt_code
+        assert "int add(int a, int b){" in dynopt_code
+        assert compiler.compile(output_file)
+        assert compiler.run(match="Render template, compilation and linking took:",
+                            verbosity=1)
+
+    def test_dynamic_code_with_global(self, input_file, output_file, capsys, compiler):
+        ''' Test a loop containing a runtime invariant and access to global variables '''
+
+        with open(input_file, "w") as source:
+            source.write(
+                '''
+                /* Hello World program */\n
+                #include<stdio.h>\n
+                \n
+                #define TYPE float\n
+
+                int intglobal = 2;
+                TYPE typeglobal = 4;
+
+                int main(){\n
+                    int constvar = 3;
+                    TYPE array[100];
+                    for(int i=0; i<10; i++){
+                        intglobal = intglobal + constvar;
+                        printf("The const is %d, array is %f.\\n", intglobal, typeglobal);\n
+                    }
+                    return 0;\n
+                }\n
+                '''
+            )
+
+        # Initialize
+        doping_trans = InjectDoping(input_file, output_file, compiler.flags)
+        doping_trans.apply()
+        captured = capsys.readouterr()
+        print(captured.out)
+
+        with open(output_file, "r") as source:
+            output_source = source.read()
+
+        print(output_source)
+
+        dynopt_code = self._filter_dyn_code(output_source)
+
+        print(dynopt_code)
+        # TODO: Define what I expect
+        assert compiler.compile(output_file)
+        assert compiler.run(match="Render template, compilation and linking took:",
+                            verbosity=1)
+
+    def test_dynamic_code_with_structs(self, input_file, output_file, capsys, compiler):
+        ''' Test a loop containing a runtime invariant and access to global variables '''
+
+        with open(input_file, "w") as source:
+            source.write(
+                '''
+                /* Hello World program */\n
+                #include<stdio.h>\n
+                \n
+                struct point {
+                    int x;
+                    int y;
+                };
+
+                int main(){\n
+                    struct point p = {1,2};
+                    int constvar = 3;
+                    for(int i=0; i<10; i++){
+                        int result = p.x + constvar;
+                        printf("The result is %d\\n", result);\n
+                    }
+                    return 0;\n
+                }\n
+                '''
+            )
+
+        # Initialize
+        doping_trans = InjectDoping(input_file, output_file, compiler.flags)
+        doping_trans.apply()
+        captured = capsys.readouterr()
+        print(captured.out)
+
+        with open(output_file, "r") as source:
+            output_source = source.read()
+
+        print(output_source)
+
+        dynopt_code = self._filter_dyn_code(output_source)
+
+        print(dynopt_code)
+        # TODO: Define what I expect
+        assert compiler.compile(output_file)
+        # assert compiler.run(match="Render template, compilation and linking took:",
+        #                    verbosity=1)
+
+    def test_nested_dynamic_code(self, input_file, output_file, capsys, compiler):
+        ''' Test a loop containing a runtime invariant and a function call that
+        have another loop with runtime invariants.'''
+
+        with open(input_file, "w") as source:
+            source.write(
+                '''
+                /* Hello World program */\n
+                #include<stdio.h>\n
+                \n
+                #define TYPE float\n
+
+                int ap_n0 = 0;
+                int bp_n4 = 4;
+
+
+                TYPE test(TYPE * A){\n
+                    TYPE s = (TYPE)ap_n0;\n
+                    for (int i = 0; i < bp_n4; i++) s += A[i];\n
+                    return s;\n
+                }\n
+
+                int main(){\n
+                    int constvar = 3;
+                    TYPE array[100];
+                    for(int i=0; i<10; i++){
+                        TYPE sum = test(array);
+                        printf("The const is %d, array is %f.\\n", constvar, sum);\n
+                    }
+                    return 0;\n
+                }\n
+                '''
+            )
+
+        # Initialize
+        doping_trans = InjectDoping(input_file, output_file, compiler.flags)
+        doping_trans.apply()
+        captured = capsys.readouterr()
+        print(captured.out)
+
+        with open(output_file, "r") as source:
+            output_source = source.read()
+
+        print(output_source)
+
+        dynopt_code = self._filter_dyn_code(output_source)
+
+        print(dynopt_code)
+        # TODO: Define what I expect
+        assert compiler.compile(output_file)
+        assert compiler.run(match="Render template, compilation and linking took:",
+                            verbosity=1)

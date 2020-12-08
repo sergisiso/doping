@@ -66,7 +66,7 @@ class DopingCursor(Cursor):
     def find_definition(self, exclude_headers=True):
         node = super().get_definition()
         if node is not None:
-            if exclude_headers and node.location.file != self.location.file:
+            if exclude_headers and node.location.file.name != self.location.file.name:
                 return None
             DopingCursor._instantiate_node(node)
             # pylint: disable=protected-access
