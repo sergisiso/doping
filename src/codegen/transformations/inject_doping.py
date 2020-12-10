@@ -218,74 +218,83 @@ class InjectDoping(CodeTransformation):
         """ Insert the dynamic function template string and return the
         variadic arguments that the created function will need."""
 
+        method = "method2"
+
         # Required libs
         self._buffer.insertstr("#include <stdarg.h>")
 
+        if method == "method2":
+            self._buffer.insertstr(f"#include \"{node.location.file.name}\"")
+
         # Replicate preprocessor macros until this point
         before, after = self._replicate_preprocessor(node)
+
         for line in before:
             self._buffer.insertstr(line.replace('\n', ''))  # Remove \n
 
-        # Function calls can be:
-        # - External (will be defined in the headers that are already copied)
-        # - Be in the original file (found at link time if the -rdynamic -ldl are included)
-        # - Be in the original file and have the attributes static and/or inline. We need to
-        #   copy these ones over to the dynamically optimized code.
-        inlined_functions = []
-        for func in self._fcalls:
-            func_def = func.find_definition()
-            if func_def is not None:
-                print(f"    - Function '{func_def.spelling}' definition found in "
-                      f"{func_def.location}")
+        if method == "method1":
 
-                # FIXME: In AO func_def.spelling != func_def.get_tokens() !??
-                tokens = [x.spelling for x in func_def.get_tokens()]
-                attributes = []
-                #if tokens:
-                #    attributes.extend(tokens[:tokens.index(func.spelling)])
+            # Function calls can be:
+            # - External (will be defined in the headers that are already copied)
+            # - Be in the original file (found at link time if the -rdynamic -ldl are
+            # included)
+            # - Be in the original file and have the attributes static and/or inline.
+            # We need to copy these ones over to the dynamically optimized code.
+            inlined_functions = []
+            for func in self._fcalls:
+                func_def = func.find_definition()
+                if func_def is not None:
+                    print(f"    - Function '{func_def.spelling}' definition found in "
+                          f"{func_def.location}")
 
-                # We could inline other functions if everything that they contain is defined
-                # inside the function (has no globals or function calls).
-                # FIXME: In fact this also affect the static inline functions below.
+                    # FIXME: In AO func_def.spelling != func_def.get_tokens() !??
+                    tokens = [x.spelling for x in func_def.get_tokens()]
+                    attributes = []
+                    # if tokens:
+                    #    attributes.extend(tokens[:tokens.index(func.spelling)])
 
-                # FIXME: Actually the inlined or signatures should be in the appropriate
-                # place regarding the preprocessor statements, it should be merged with
-                # the _replicate_preprocessor functionality.
+                    # We could inline other functions if everything that they contain
+                    # is defined inside the function (has no globals or function calls).
+                    # FIXME: In fact this also affect the static inline functions below.
 
-                # Store/mark this function as already inlined
-                if func_def not in inlined_functions:
-                    inlined_functions.append(func_def)
-                for line in func_def.get_string().split('\n'):
-                    self._buffer.insertstr(line)
-                continue
-                if 'static' in attributes or 'inline' in attributes:
-                    # FIXME: Check for function calls also inside func
+                    # FIXME: Actually the inlined or signatures should be in the appropriate
+                    # place regarding the preprocessor statements, it should be merged with
+                    # the _replicate_preprocessor functionality.
+
+                    # Store/mark this function as already inlined
+                    if func_def not in inlined_functions:
+                        inlined_functions.append(func_def)
                     for line in func_def.get_string().split('\n'):
                         self._buffer.insertstr(line)
-                else:
-                    # Insert just the function signature
-                    self._buffer.insertstr(func_def.result_type.spelling + " " +
-                                           func_def.displayname + ";")
-            else:
-                found = False
-                for file_func_decl in self._ast.find_functions():
-                    if file_func_decl.spelling == func.spelling:
-                        found = True
-
-                        # Store/mark this function as already inlined
-                        if file_func_decl not in inlined_functions:
-                            inlined_functions.append(file_func_decl)
-
-                        # Insert just the function signature
-                        for line in file_func_decl.get_string().split('\n'):
+                    continue
+                    if 'static' in attributes or 'inline' in attributes:
+                        # FIXME: Check for function calls also inside func
+                        for line in func_def.get_string().split('\n'):
                             self._buffer.insertstr(line)
+                    else:
+                        # Insert just the function signature
+                        self._buffer.insertstr(func_def.result_type.spelling + " " +
+                                               func_def.displayname + ";")
+                else:
+                    found = False
+                    for file_func_decl in self._ast.find_functions():
+                        if file_func_decl.spelling == func.spelling:
+                            found = True
 
-                        print("    - Only the function signature of ", func.spelling,
-                              " was found!")
-                if not found:
-                    print(f"    - Declaration of function '{func.spelling}' in "
-                          f"{func.location}  not found. Assuming it is defined "
-                          "in imported headers.")
+                            # Store/mark this function as already inlined
+                            if file_func_decl not in inlined_functions:
+                                inlined_functions.append(file_func_decl)
+
+                            # Insert just the function signature
+                            for line in file_func_decl.get_string().split('\n'):
+                                self._buffer.insertstr(line)
+
+                            print("    - Only the function signature of ", func.spelling,
+                                  " was found!")
+                    if not found:
+                        print(f"    - Declaration of function '{func.spelling}' in "
+                              f"{func.location}  not found. Assuming it is defined "
+                              "in imported headers.")
 
         # Always use the C ABI
         if self._is_cpp:
