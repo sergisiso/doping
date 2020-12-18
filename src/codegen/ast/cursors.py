@@ -99,7 +99,7 @@ class DopingCursor(Cursor):
         return self.kind == CursorKind.COMPOUND_STMT
 
     def type_is_scalar(self):
-        return ((self.type.kind.value >= 4) and
+        return ((self.type.kind.value >= 3) and
                 (self.type.kind.value <= 23))
 
     def type_is_pointer(self):
@@ -168,7 +168,7 @@ class DopingCursor(Cursor):
     # PRINTING METHODS
     ############################
 
-    def view(self, indent=0, infile=False, recursion_limit=10):
+    def view(self, indent=0, infile=False, recursion_limit=15):
         '''
         Writes in stdout a representation of the AST tree starting
         at the node.
@@ -198,15 +198,22 @@ class DopingCursor(Cursor):
     #######################################
 
     def _find(self, searchtype, outermostonly=False, exclude_headers=True):
+
+        # Search type must be a tuple to allow multiple search types
+        if not isinstance(searchtype, tuple):
+            searchtype = (searchtype,)
+
         if exclude_headers:
             if self.location.file is not None:
                 if self.location.file.name.endswith(('.h', '.hpp', '.tcc')):
                     return  # Does not yield anything
-        if self.kind == searchtype:
+
+        # Found a node if searchtype
+        if self.kind in searchtype:
             yield self
 
         # If it needs to continue searching recurse down into the children
-        if self.kind != searchtype or not outermostonly:
+        if self.kind not in searchtype or not outermostonly:
             if self.kind == CursorKind.CALL_EXPR:
                 # [1:] to Remove name node of function calls
                 for child in self.get_children()[1:]:
@@ -256,7 +263,7 @@ class DopingCursor(Cursor):
 
     def find_all_accesses(self, outermostonly=False, exclude_headers=True):
         ''' Find Accesses nodes '''
-        return self._find(CursorKind.UNEXPOSED_EXPR)
+        return self._find((CursorKind.UNEXPOSED_EXPR, CursorKind.DECL_REF_EXPR))
 
     #######################################
     # Analysis methods
@@ -517,84 +524,95 @@ class ForCursor (DopingCursor):
 
         3. Arrays/Pointers read.
 
-        4. Run-time constants: Variables with global scope but not modified
+        4. Run-time Invariants: Variables with global scope but not modified
         in the loop.
 
         '''
         local_vars = []
         local_vars_names = []
-        pointer_vars = []
-        pointer_vars_names = []
+        other_vars = []
+        other_vars_names = []
         written_scalars = []
         written_scalars_names = []
         runtime_constants = []
 
-        # 1. Find local variables: Declared inside the loop.
+        # 1. Find local variables: any declaration inside the loop.
         for decl in self.find_declarations():
             local_vars.append(decl)
             local_vars_names.append(decl.displayname)
 
-        # 2. Find variables that are written in the loop.
+        # 2. Find outer-scope variables that are written in the loop.
         for assignment in self.find_assignments():
+
+            # Get the assignment LHS
             var = assignment.get_children()[0]
-            # If it has pointer operations ignore them until the variable
-            # name is found. FIXME: Is this robust enough?
+
+            # Get only the top-level object in member operations
             while var.kind == CursorKind.MEMBER_REF_EXPR:
                 var = var.get_children()[0]
+
+            # Also recurse down if lhs has operators (e.g. pointer dereference)
             while var.kind == CursorKind.UNARY_OPERATOR:
                 var = var.get_children()[0]
-            if var.type_is_pointer():
-                continue
-            if (var.displayname not in local_vars_names) and \
-               (var.displayname not in written_scalars_names):
-                # avoid duplicated (FIXME: but what happens with
-                # multiple declarations with same name?)
-                if var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR:
-                    written_scalars.append(var)
-                    written_scalars_names.append(var.displayname)
 
-        # 3. Find arrays read in the loop (raw pointers are added in the
-        # loop below).
-        for array in self.find_array_accesses():
-            while array.get_children()[0].displayname == "":
-                # recurse down in case it is a multidimensional array
-                array = array.get_children()[0]
-            # avoid duplicates
-            if array.get_children()[0].displayname not in pointer_vars_names:
-                pointer_vars.append(array.get_children()[0])
-                pointer_vars_names.append(array.get_children()[0].displayname)
+            # Avoid duplicates, reference that are local, and pointer or arrays
+            if var.displayname not in local_vars_names and \
+               var.displayname not in written_scalars_names and \
+               var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR and \
+               var.type_is_pointer():
+                written_scalars.append(var)
+                written_scalars_names.append(var.displayname)
 
-        # 4. Variables which can be constant between loop iterations
+        # 3. Find outer-scope arrays read in the loop
+        # (raw pointers are added in the loop below).
+        #for array in self.find_array_accesses():
+
+            # Recurse down in case it is a multidimensional array
+        #    while array.displayname == "":
+        #        array = array.get_children()[0]
+
+            # Avoid duplicates and local variables
+        #    if array.displayname not in other_vars_names and \
+        #       array.displayname not in local_vars_names:
+        #        other_vars.append(array)
+        #        other_vars_names.append(array.displayname)
+
+        # 4. Variables which we know are invariants between loop iterations:
+        # This are only scalars at the moment
         runtime_constants = []
         runtime_constants_names = []
         for access in self.find_all_accesses():
-            # import pdb; pdb.set_trace()
-            # if access.displayname == "mid":
-            #     import pdb; pdb.set_trace()
-            #     print(access.type.spelling)
-            # if access.displayname == "hit":
-            #     import pdb; pdb.set_trace()
-            if access.displayname.startswith("operator"):
+
+            # FIXME
+            if access.spelling == "operator=":
                 continue
-            while len(access.get_children()) > 0 and access.kind == CursorKind.UNEXPOSED_EXPR:
+
+            # Recurse down in UNEXPOSED_EXPR until the displayname is already
+            # the same as the children.
+            while len(access.get_children()) > 0 and \
+                    access.kind == CursorKind.UNEXPOSED_EXPR:
                 if access.get_children()[0].displayname == access.displayname:
                     access = access.get_children()[0]
                 else:
                     break
+
+            # Just consider the initial reference in a struct/class memeber
+            # (e.g. ref_considered.ignore.ignore)
             while access.kind == CursorKind.MEMBER_REF_EXPR:
                 access = access.get_children()[0]
-            if (access.displayname not in runtime_constants_names) and \
-               (access.displayname not in local_vars_names) and \
-               (access.displayname not in written_scalars_names) and \
-               (access.displayname not in pointer_vars_names) and \
-               (access.displayname != ''):
-                if access.type_is_scalar() and \
-                   (access.kind != CursorKind.CALL_EXPR):
+
+            if access.displayname not in runtime_constants_names and \
+               access.displayname not in local_vars_names and \
+               access.displayname not in written_scalars_names and \
+               access.displayname not in other_vars_names and \
+               access.displayname != '' and \
+               access.kind != CursorKind.CALL_EXPR:
+
+                if access.type_is_scalar():
                     runtime_constants.append(access)
                     runtime_constants_names.append(access.displayname)
-                if access.type_is_pointer() and \
-                   (access.kind != CursorKind.CALL_EXPR):
-                    pointer_vars.append(access)
-                    pointer_vars_names.append(access.displayname)
+                else:
+                    other_vars.append(access)
+                    other_vars_names.append(access.displayname)
 
-        return local_vars, pointer_vars, written_scalars, runtime_constants
+        return local_vars, other_vars, written_scalars, runtime_constants

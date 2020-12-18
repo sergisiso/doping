@@ -35,7 +35,9 @@ class DopingTranslationUnit():
 
         self._filename = filename
         index = Index.create()
-        self._clang_tu = index.parse(filename, args=self._parse_arguments)
+        #print(filename, self._parse_arguments)
+        #self._clang_tu = index.parse(filename, args=self._parse_arguments)
+        self._clang_tu = index.parse(filename)
 
     def get_root(self):
         ''' Returns the DopingCursor that represents the AST root node. '''
