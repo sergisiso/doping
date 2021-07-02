@@ -68,7 +68,7 @@ int dopingRuntimeG(
             df = new DynamicFunction(loop->source, loop->parameters);
             df->compile_and_link(loop->compiler_command);
         } catch(exception& e){
-            LOG(ERROR) << " Doping failed to dynamically optimize function with error:";
+            LOG(ERROR) << "Doping failed to dynamically optimize function with error:";
             LOG(ERROR) << e.what();
             LOG(ERROR) << "Continuing with baseline code.";
             global_counter = 0;

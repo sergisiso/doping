@@ -559,13 +559,13 @@ class ForCursor (DopingCursor):
             if var.displayname not in local_vars_names and \
                var.displayname not in written_scalars_names and \
                var.kind != CursorKind.ARRAY_SUBSCRIPT_EXPR and \
-               var.type_is_pointer():
+               not var.type_is_pointer():
                 written_scalars.append(var)
                 written_scalars_names.append(var.displayname)
 
         # 3. Find outer-scope arrays read in the loop
         # (raw pointers are added in the loop below).
-        #for array in self.find_array_accesses():
+        # for array in self.find_array_accesses():
 
             # Recurse down in case it is a multidimensional array
         #    while array.displayname == "":

@@ -186,7 +186,7 @@ class InjectDoping(CodeTransformation):
         self._buffer.insert("")
         return True
 
-    def _replicate_preprocessor(self, node):
+    def _replicate_preprocessor(self, node, remove_includes=False):
         """ Return all the proprocessor statements before and after
         the selected node."""
 
@@ -198,6 +198,8 @@ class InjectDoping(CodeTransformation):
             lines = source.readlines()
             for lnum, line in enumerate(lines):
                 if line.replace(" ", "").startswith("#") and not inside_comment:
+                    if remove_includes and line.startswith('#include'):
+                        continue
                     # FIXME: What about multi-line (symbol \ continuation)
                     # FIXME: Are some #pragma necessary (e.g. #pragma once)?
                     if not line.startswith('#pragma'):
@@ -222,12 +224,16 @@ class InjectDoping(CodeTransformation):
 
         # Required libs
         self._buffer.insertstr("#include <stdarg.h>")
+        remove_other_includes = False
 
         if method == "method2":
-            self._buffer.insertstr(f"#include \"{node.location.file.name}\"")
+            cwd = os.getcwd()
+            incpath = os.path.join(cwd, node.location.file.name)
+            self._buffer.insertstr(f"#include \"{incpath}\"")
+            remove_other_includes = True
 
         # Replicate preprocessor macros until this point
-        before, after = self._replicate_preprocessor(node)
+        before, after = self._replicate_preprocessor(node, remove_other_includes)
 
         for line in before:
             self._buffer.insertstr(line.replace('\n', ''))  # Remove \n
@@ -340,8 +346,11 @@ class InjectDoping(CodeTransformation):
                 first_square_bracket = pointer_type.index('[')
                 pointer_type = pointer_type[:first_square_bracket] + ("*" * dims)
 
+            # Variadic type macro expansion fails if it has the restrict attribute,
+            # so we remove it
+            va_type = pointer_type.replace('__restrict','')
             self._buffer.insertstr(pointer_type + " " + pointer.displayname +
-                                   " = va_arg(args, " + pointer_type + ");")
+                                   " = va_arg(args, " + va_type + ");")
             # self._buffer.insertstr(pointer.displayname + " = (" + pointer_type + ")" +
             #        "__builtin_assume_aligned(" + pointer.displayname + ",64);")
             list_of_va_args.append(pointer.displayname)

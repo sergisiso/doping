@@ -43,7 +43,5 @@ perfcversion:
 		(/usr/bin/time -f "%e" ./mm.cversion.exe 50 $(it) 2>&1 > /dev/null) >> perfcversion.txt ; \
 	)
 
-
-
 clean:
 	rm  -f *.exe *.output mm.doping.* *.txt
