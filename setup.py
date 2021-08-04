@@ -22,7 +22,7 @@ SRC_PATH = os.path.join(BASE_PATH, "src")
 PACKAGES = find_packages(
     where=SRC_PATH, exclude=["codegen.test", "codegen.test.*"])
 
-REQUIREMENTS = []
+REQUIREMENTS = ['libclang']
 DEV_REQUIREMENTS = ["pytest", "pylint", "pytest-cov", "pycodestyle",
                     "Sphinx", "sphinx_rtd_theme"]
 
