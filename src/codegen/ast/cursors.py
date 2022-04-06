@@ -112,13 +112,14 @@ class DopingCursor(Cursor):
         return self.extent.end.line
 
     def get_string(self, referencing_variables=None):
-        """Return the whole string that this node represents.
+        '''
+        Return the whole string that this node represents.
 
         If a referencing variables is given, any token that matches that
         variable will be prefixed with the C referencing operator * and
-        wrapped with paranthesis to maintain operator precedende.
-        e.g. "j++;" -> "(*j)++;"
-        """
+        wrapped with parenthesis to maintain operator precedence.
+        e.g. `j++;` -> `(*j)++;`
+        '''
 
         if referencing_variables is None:
             return self.get_string_from_source()
@@ -404,13 +405,14 @@ class ForCursor (DopingCursor):
         return " ".join(tokens)
 
     def body_string(self, referencing_variables=None):
-        """Return the body of the loop with an appropriate format.
+        '''
+        Return the body of the loop with an appropriate format.
 
         If a referencing variables is given, any token that matches that
         variable will be prefixed with the C referencing operator * and
-        wrapped with paranthesis to maintain operator precedende.
-        e.g. "j++;" -> "(*j)++;"
-        """
+        wrapped with parenthesis to maintain operator precedence.
+        e.g. `j++;` -> `(*j)++;`
+        '''
 
         string = self.get_body().get_string(referencing_variables=referencing_variables)
 

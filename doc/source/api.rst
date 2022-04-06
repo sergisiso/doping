@@ -8,7 +8,7 @@ Developer's API
 Rewriter Class
 --------------
 
-.. autoclass:: codegen.Rewriter.Rewriter
+.. autoclass:: codegen.rewriter.Rewriter
     :members:
     :undoc-members:
 
@@ -16,26 +16,26 @@ Rewriter Class
 AST Related Classes
 -------------------
 
-.. autoclass:: codegen.DopingAST.DopingTranslationUnit.DopingTranslationUnit
+.. autoclass:: codegen.ast.translation_unit.DopingTranslationUnit
     :members:
     :undoc-members:
 
-.. autoclass:: codegen.DopingAST.DopingCursors.DopingCursorBase
+.. autoclass:: codegen.ast.cursors.DopingCursor
     :members:
     :inherited-members:
     :undoc-members:
 
-.. autoclass:: codegen.DopingAST.DopingCursors.DeclarationCursor
+.. autoclass:: codegen.ast.cursors.DeclarationCursor
     :members:
     :undoc-members:
 
-.. autoclass:: codegen.DopingAST.DopingCursors.ForCursor
+.. autoclass:: codegen.ast.cursors.ForCursor
     :members:
     :undoc-members:
 
 Code Transformation Class
 -------------------------
 
-.. autoclass:: codegen.CodeTransformations.CodeTransformation.CodeTransformation
+.. autoclass:: codegen.transformations.transformation.CodeTransformation
     :members:
     :undoc-members:

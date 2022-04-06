@@ -10,7 +10,7 @@ class Rewriter:
     cursor using the current line numbers or the original line numbers.
     It is useful for making modifications in multiple locations of the
     buffer when the user only has references to the original line numbers
-    (like the pre-parsed AST tree)
+    (like the pre-parsed AST tree).
     '''
 
     _filename = None
@@ -66,7 +66,7 @@ class Rewriter:
 
     def goto_line(self, number):
         '''
-        Move the cursor to provided line number
+        Move the cursor to provided line number.
 
         :param number: Line number
         '''
@@ -89,7 +89,7 @@ class Rewriter:
 
     def insert(self, string):
         '''
-        Insert string into the cursor possition.
+        Insert string into the cursor position.
 
         :param str string: String to insert.
         '''
@@ -126,7 +126,7 @@ class Rewriter:
 
     def insertstr(self, string):
         '''
-        Insert string inside a C style literal like: "<string>\n"
+        Insert string inside a C style literal like: "<string>\\n"
 
         :param str string: String to insert.
         '''

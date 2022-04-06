@@ -32,23 +32,26 @@ User's Guide
 
 .. usersguide-begin-marker-do-not-remove
 
-Build Doping and its dependencies
-`````````````````````````````````
+Building instructions
+`````````````````````
 
-Doping uses the llvm libclang, which can be installed from your Package manager of choice.
-If libclang is installed manually make sure to add libclang.so path to LD_LIBRARY_PATH.
-All other dependencies are embedded or managed by the `pip` command, you can install them with:
+Doping uses the llvm libclang, which can be installed from your Package manager of
+choice. If libclang is installed manually make sure to add `libclang.so` path to
+`LD_LIBRARY_PATH`. All other dependencies are embedded or managed by the `pip`
+command, you can install them with:
 
 .. code-block:: bash
 
-    cd doping
     pip install -e . 
 
-To build the Doping runtime under 'bin' directory use:
+To build the Doping runtime use:
 
 .. code-block:: bash
 
     make
+
+If it succeeds the `bin` folder should contains the files: `dope`, `doping.h` and
+`libdoping.so`.
 
 The make targets below verify Doping is running correctly and demonstrate a simple example:
 
@@ -61,17 +64,14 @@ The make targets below verify Doping is running correctly and demonstrate a simp
 
 Usage
 `````
-First one should specify DOPING_ROOT environment variable to point the folder
-where the dope binary is located. Optionally the DOPING_VERBOSE environment
-variable can be set with a verbosity level in order to print more information
-during the execution of a program:
+To use Doping, first specify the DOPING_ROOT environment variable to point this
+repository.
 
 .. code-block:: bash
 
-    export DOPING_ROOT=[path to doping directory]
-    export DOPING_VERBOSE=1
+    export DOPING_ROOT=$PWD
 
-To use Doping, prepend the compiler command with the `dope` command:
+Then prepend a compiler command with the `dope` command:
 
 .. code-block:: bash
 
@@ -81,14 +81,26 @@ For example:
 
 .. code-block:: bash
 
-    dope -- gcc test/flops/flops_serial.c -o test/flops/flops
+    cd examples/quick_examples/multiplematrixmult/
+    dope -- gcc -O2 mm.cc -o mm.exe
 
 
-For intercepting build system compiler invocations you could try:
+Alternatively, you can try intercepting build system compiler invocations with:
 
 .. code-block:: bash
 
     CC="./doping [doping_options] -- icc" make
+
+Finally, run the produced binary as normal, Doping runtime optimization will
+be triggered under-the-hood when a loop can be optimized. Optionally, the
+DOPING_VERBOSE environment variable can be set with a verbosity level in
+order to print more information about what Doping is doing during the execution
+of a program:
+
+.. code-block:: bash
+
+    ./mm.exe 50 10000
+    DOPING_VERBOSE=1 ./mm.exe 50 10000
 
 .. usersguide-end-marker-do-not-remove
 
@@ -98,7 +110,7 @@ Developer's Guide
 
 .. developersguide-begin-marker-do-not-remove
 
-Additionally to the dependencies mentioned on the User's Guide,
+In addition to the dependencies mentioned on the User's Guide,
 developers can install: pytest, pytest-cov, pycodestyle,
 Sphinx and sphinx_rtd_theme, this will allow to run the
 unit-tests and to build the documentation:
@@ -155,6 +167,6 @@ Finally, to clean binaries and temporal files you can use:
 .. developersguide-end-marker-do-not-remove
 
 Contributors
--------------------------------
-Sergi Siso <sergi.siso@stfc.ac.uk>
-Jeyan Thiyagalingam <T.Jeyarajan@liverpool.ac.uk>
+------------
+- Sergi Siso <sergi.siso@stfc.ac.uk>
+- Jeyan Thiyagalingam <T.Jeyarajan@liverpool.ac.uk>
