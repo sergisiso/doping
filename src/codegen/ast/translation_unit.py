@@ -12,10 +12,6 @@ class DopingTranslationUnit():
     When the class is instantiated, it already parsed the provided file.
     '''
 
-    _filename = None
-    _clang_tu = None
-    _parse_arguments = []
-
     def __init__(self, filename, compiler_command=None):
         if not os.path.isfile(filename):
             raise FileNotFoundError("{0} does not exist".format(filename))
@@ -25,19 +21,21 @@ class DopingTranslationUnit():
                 "Unrecognized file extension in {0}".format(filename)
             )
 
+        self._flags = []
         if compiler_command:
             if not isinstance(compiler_command, str):
                 raise TypeError(
                     "DopingTranslationUnit compiler_command parameter must be "
                     "a string")
-            self._parse_arguments = \
+            self._flags = \
                 [x for x in compiler_command.split() if x.startswith("-")]
 
         self._filename = filename
         index = Index.create()
-        #print(filename, self._parse_arguments)
-        #self._clang_tu = index.parse(filename, args=self._parse_arguments)
-        self._clang_tu = index.parse(filename)
+        # We need to filter the flags because some may be intended for a different
+        # compiler and are not standard
+        parse_flags = [flag for flag in self._flags if flag.startswith("-D")]
+        self._clang_tu = index.parse(filename, args=parse_flags)
 
     def get_root(self):
         ''' Returns the DopingCursor that represents the AST root node. '''
@@ -47,6 +45,6 @@ class DopingTranslationUnit():
             root._source_code = source.read()
         return root
 
-    def get_parse_arguments(self):
+    def get_flags(self):
         ''' Return arguments used by Clang to parse the source file. '''
-        return self._parse_arguments
+        return self._flags

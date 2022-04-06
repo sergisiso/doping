@@ -14,6 +14,8 @@
 using namespace std;
 
 static int sNextId = 0;
+// Use /tmp but it may be system-specific and could be a security issue
+static string TMPDIR = "/tmp/";
 string getNextId() { return to_string(++sNextId); }
 
 string run_shell(const string& cmd) {
@@ -63,10 +65,8 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
     // Get a unique ID
     string uid = getNextId();
 
-    // Use /tmp but it may be system-specific and
-    // could be a security issue (it is a shared folder).
     // FIXME: It should maintain the same file extension as the original
-    string filename = "/tmp/doping_tmp_file_" + uid + ".c";
+    string filename = TMPDIR + "doping_tmp_file_" + uid + ".c";
 
     // Open a temporal file (is it possible to compile from a stream instead?)
     ofstream tmpfile(filename, ofstream::out | ofstream::trunc);
@@ -96,7 +96,7 @@ void DynamicFunction::compile_and_link(const string& compilercmd) {
     }
 
     // Compile with -fPIC and -shared flags in addition to the original ones
-    string libname = "/tmp/doping_tmp_object" + uid + ".so";
+    string libname = TMPDIR + "doping_tmp_object" + uid + ".so";
     string command = compilercmd + " -fPIC -shared " + filename + " -o " + libname;
     LOG(DEBUG) << "Compiling: " << command;
 	string result = run_shell(command);

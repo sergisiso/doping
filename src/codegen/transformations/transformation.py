@@ -18,6 +18,7 @@ class CodeTransformation:
         self._store_for_pragmas(inputfile)
 
     def apply(self):
+        print("Compilation parsing flags:", self._flags)
         tu = DopingTranslationUnit(self._inputfile, self._flags)
         self._ast = tu.get_root()
         result = []

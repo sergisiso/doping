@@ -265,20 +265,14 @@ class DopingCursor(Cursor):
         ''' Find Accesses nodes '''
         return self._find((CursorKind.UNEXPOSED_EXPR, CursorKind.DECL_REF_EXPR))
 
+    def find_calls(self):
+        ''' Find CALL expressions '''
+
+        return self._find(CursorKind.CALL_EXPR)
+
     #######################################
     # Analysis methods
     #######################################
-
-    def function_call_analysis(self):
-
-        # Search all function calls in code block
-        fcalls = list(self._find(CursorKind.CALL_EXPR))
-
-        # Filter functions not defined in the same file
-        # (definition not accessible) (is this enough?)
-        # fcalls = [x for x in fcalls if x.get_definition() is not None]
-
-        return fcalls
 
     def get_string_from_source(self):
         ''' Get the string representing this node by using the extents

@@ -136,8 +136,7 @@ class TestInjectDoping:
                 "    Scalar writes:\n"
                 "    Vars for delayed evaluation:\n"
                 "        constvar (int)\n"
-                "    Number of function calls: 1\n"
-                "    > Creating dynamically optimized version of the loop.\n"))
+                "    Number of function calls: 1\n"))
         assert re.search(regexpr, captured.out)
         assert "> Creating dynamically optimized version of the loop." in captured.out
 
@@ -214,7 +213,7 @@ class TestInjectDoping:
 
         # Compile and run the output_file
         assert compiler.compile(output_file)
-        assert compiler.run(match="Render template, compilation and linking took:",
+        assert compiler.run(match="Rendering template, compilation and linking took:",
                             verbosity=2)
 
     @pytest.mark.xfail(reason="only one pragma line is copied for now")
@@ -430,7 +429,6 @@ class TestInjectDoping:
         # which shouldn't stop the dynamic optimization
         assert "> Creating dynamically optimized version of the loop." in captured.out
 
-        return
         # the 'add' function source is found in the file
         assert "- Function 'add' definition found" in captured.out
         # while the 'printf' function is not found
@@ -443,7 +441,7 @@ class TestInjectDoping:
         assert "#include<stdio.h>" in dynopt_code
         assert "int add(int a, int b){" in dynopt_code
         assert compiler.compile(output_file)
-        assert compiler.run(match="Render template, compilation and linking took:",
+        assert compiler.run(match="Rendering template, compilation and linking took:",
                             verbosity=1)
 
     def test_dynamic_code_with_global(self, input_file, output_file, capsys, compiler):
@@ -488,7 +486,7 @@ class TestInjectDoping:
         print(dynopt_code)
         # TODO: Define what I expect
         assert compiler.compile(output_file)
-        assert compiler.run(match="Render template, compilation and linking took:",
+        assert compiler.run(match="Rendering template, compilation and linking took:",
                             verbosity=2)
 
     def test_dynamic_code_with_structs(self, input_file, output_file, capsys, compiler):
@@ -534,7 +532,7 @@ class TestInjectDoping:
         print(dynopt_code)
         # TODO: Define what I expect
         assert compiler.compile(output_file)
-        assert compiler.run(match="Render template, compilation and linking took:",
+        assert compiler.run(match="Rendering template, compilation and linking took:",
                            verbosity=2)
 
     def test_nested_dynamic_code(self, input_file, output_file, capsys, compiler):
@@ -587,5 +585,5 @@ class TestInjectDoping:
         print(dynopt_code)
         # TODO: Define what I expect
         assert compiler.compile(output_file)
-        assert compiler.run(match="Render template, compilation and linking took:",
+        assert compiler.run(match="Rendering template, compilation and linking took:",
                             verbosity=2)

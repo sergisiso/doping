@@ -7,7 +7,7 @@ DOPING=${DOPING_ROOT}/bin/dope
 TGINCLUDE = -I$(TGPATH)/include
 TGLIB = -L$(TGPATH)/lib
 
-all: cversion
+all: cversion doping
 
 cversion: imgfilt-cpp.cc
 	$(CC) $(CFLAGS) imgfilt-cpp.cc -o if.cversion.exe

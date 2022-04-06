@@ -6,7 +6,7 @@ ITERATIONS=$(shell seq 1000 1000 50000)
 
 DOPING=${DOPING_ROOT}/bin/dope
 
-all: cversion mopt doping
+all: cversion doping
 
 cversion: mm.cc
 	$(CC) $(CFLAGS) mm.cc -o mm.cversion.exe
@@ -22,12 +22,6 @@ rundoping:
 
 compare:
 	diff cversion.output dopingversion.output
-
-mopt: mm_manual_opt.cc
-	$(CC) $(CFLAGS) mm_manual_opt.cc -o mm.manualopt.exe
-
-runmopt:
-	./mm.manualopt.exe 1000
 
 perfdoping:
 	rm -f perfdoping.txt

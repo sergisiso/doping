@@ -23,7 +23,7 @@ class InjectDoping(CodeTransformation):
         self._fcalls = None
 
     def _candidates(self):
-        return self._ast.find_loops(True, True)
+        return self._ast.find_loops(outermostonly=True, exclude_headers=True)
 
     def _static_analysis(self, node):
         print("Analyzing loop at " + str(node.location))
@@ -32,6 +32,7 @@ class InjectDoping(CodeTransformation):
         is_benchmark = os.getenv('DOPING_BENCHMARK')
         if is_benchmark == '1':
             if node.location.line < 910 or node.location.line > 5584:
+                print("DISCARDED by DOPING_BENCHMARK (from 910 to 5584)")
                 return False
 
         # Analyse the loop variables
@@ -39,7 +40,7 @@ class InjectDoping(CodeTransformation):
             node.variable_analysis()
 
         # Analyse the function calls
-        fcalls = node.function_call_analysis()
+        fcalls = [x for x in node.find_calls()]
 
         self._print_analysis(local_vars, pointers, written_scalars,
                              runtime_constants, fcalls)
@@ -219,6 +220,7 @@ class InjectDoping(CodeTransformation):
     def _generate_dynamic_function(self, node, iteration_type):
         """ Insert the dynamic function template string and return the
         variadic arguments that the created function will need."""
+
 
         method = "method2"
 
@@ -422,3 +424,5 @@ class InjectDoping(CodeTransformation):
             print("        " + var.displayname + " (" +
                   var.type.spelling + ")")
         print("    Number of function calls: " + str(len(fcalls)))
+        for func in fcalls:
+            print("    Function:" + func.displayname)

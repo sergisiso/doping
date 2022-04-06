@@ -96,14 +96,14 @@ class TestDopingTranslationUnit:
         sample_tu = DopingTranslationUnit(cfile)
         assert isinstance(sample_tu.get_root(), DopingCursor)
 
-    def test_get_parse_arguments(self, cfile):
-        ''' The get_parse_arguments() method returns the arguments string '''
+    def test_get_flags(self, cfile):
+        ''' The get_flags() method returns the arguments string '''
         # Test with an empty list of arguments
         sample_tu = DopingTranslationUnit(cfile)
-        assert isinstance(sample_tu.get_parse_arguments(), list)
-        assert len(sample_tu.get_parse_arguments()) == 0
+        assert isinstance(sample_tu.get_flags(), list)
+        assert len(sample_tu.get_flags()) == 0
 
         # Test with multiple arguments, just the ones starting with '-' should appear
         sample_tu = DopingTranslationUnit(cfile, "gcc -O2 invalidflag")
-        assert len(sample_tu.get_parse_arguments()) == 1
-        assert "-O2" in sample_tu.get_parse_arguments()
+        assert len(sample_tu.get_flags()) == 1
+        assert "-O2" in sample_tu.get_flags()

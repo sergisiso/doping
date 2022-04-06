@@ -68,7 +68,7 @@ class GCCCompiler(Compiler):
         header_path = os.path.join(os.environ['DOPING_ROOT'], 'bin')
         library_path = os.path.join(header_path, 'libdoping.so')
         command = (self.flags + ' ' + self._source_file + " -o test_binary.exe -I" +
-                   header_path + ' ' + library_path + " -rdynamic -ldl")
+                   header_path + ' ' + library_path + " -ldl")
 
         try:
             # Invoke the compiler command
