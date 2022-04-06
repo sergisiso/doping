@@ -3,7 +3,7 @@ all: compile
 CC=g++
 FLAGS=-O2
 
-.PHONY: dependencies compile test clean
+.PHONY: dependencies compile test test-codegen test-runtime examples quickrun clean
 
 dependencies:
 	pip install -e .[dev]
@@ -14,12 +14,15 @@ compile:
 	cp src/runtime/build/libdoping.so bin/libdoping.so
 	cp src/runtime/include/dopingRuntime.h bin/doping.h
 
-test: compile
-	cd src/runtime && make test  # Runtime Unit tests
+test-codegen:
 	pytest src/codegen --compile  # Doping Unit tests
-	cd examples && ./run_examples.sh  # Integration tests
 
-examples: compile
+test-runtime:
+	cd src/runtime && make test  # Runtime Unit tests
+
+test: test-codegen test-runtime examples
+
+examples:
 	cd examples && ./run_examples.sh  # Integration tests
 
 quickrun: compile
