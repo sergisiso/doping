@@ -97,6 +97,16 @@ class InjectDoping(CodeTransformation):
             format_list.append(var.displayname + ":" + format_specifier)
             parameters_list.append(var.displayname)
 
+        format_list.append("doping_restrict_all:%d")
+        if len(self._pointers) > 1 and node.guarantee_non_aliasing_of(self._pointers):
+            # TODO: We also need to test that is not in the range from start to iteration end!
+            base = self._pointers[0].displayname
+            cmp_address_string = " && ".join([base + "!=" + var.displayname for var in self._pointers[1:]])
+            parameters_list.append(cmp_address_string)
+        else:
+            parameters_list.append("0")
+        # TODO: Could also add an alignment check!
+
         # Include doping runtime at the top if it doesn't exist already
         self._buffer.goto_line(1)
         include_string = "#include \"doping.h\""
@@ -124,7 +134,7 @@ class InjectDoping(CodeTransformation):
         # Create Unique string identifier
         parameters_string = "dopingRuntimeVal_" + str(self._loop_id)
         # Declare the string (array of char)
-        self._buffer.insert("char " + parameters_string + "[100];")
+        self._buffer.insert("char " + parameters_string + "[300];")
         # Ensemble the sprinf call
         self._buffer.insert("sprintf(" + parameters_string + ", ")
         self._buffer.insertpl("\""+",".join(format_list) + "\", ")
@@ -351,7 +361,11 @@ class InjectDoping(CodeTransformation):
             # Variadic type macro expansion fails if it has the restrict attribute,
             # so we remove it
             va_type = pointer_type.replace('__restrict','')
-            self._buffer.insertstr(pointer_type + " " + pointer.displayname +
+
+            # Write a conditional Doping string to add __restrict when possible
+            restrict_string = " /*<DOPING_IF doping_restrict_all __restrict__ >*/ "
+
+            self._buffer.insertstr(pointer_type + restrict_string + pointer.displayname +
                                    " = va_arg(args, " + va_type + ");")
             # self._buffer.insertstr(pointer.displayname + " = (" + pointer_type + ")" +
             #        "__builtin_assume_aligned(" + pointer.displayname + ",64);")

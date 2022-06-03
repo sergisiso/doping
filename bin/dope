@@ -70,7 +70,7 @@ def main():
     new_compiler_command = args.compiler_command[:]
     new_compiler_command.append("-I" + doping_header_path)
     new_compiler_command.append(doping_runtime_path)
-    new_compiler_command.append("-rdynamic")
+    new_compiler_command.append("-Wl,--export-dynamic")
     new_compiler_command.append("-ldl")
 
     # Find C/C++ files in the input command

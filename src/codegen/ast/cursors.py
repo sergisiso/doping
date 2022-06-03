@@ -198,7 +198,7 @@ class DopingCursor(Cursor):
     # find_* Generators
     #######################################
 
-    def _find(self, searchtype, outermostonly=False, exclude_headers=True):
+    def _find(self, searchtype, outermostonly=False, exclude_headers=True,  displayname=False):
 
         # Search type must be a tuple to allow multiple search types
         if not isinstance(searchtype, tuple):
@@ -209,20 +209,23 @@ class DopingCursor(Cursor):
                 if self.location.file.name.endswith(('.h', '.hpp', '.tcc')):
                     return  # Does not yield anything
 
-        # Found a node if searchtype
-        if self.kind in searchtype:
-            yield self
+        # Found a node if searchtype, or searchtype is empty(we want all)
+        found = False
+        if self.kind in searchtype or not searchtype:
+            if not displayname or displayname == self.displayname:
+                found = True
+                yield self
 
         # If it needs to continue searching recurse down into the children
-        if self.kind not in searchtype or not outermostonly:
+        if not found or not outermostonly:
             if self.kind == CursorKind.CALL_EXPR:
                 # [1:] to Remove name node of function calls
                 for child in self.get_children()[1:]:
-                    for match in child._find(searchtype, outermostonly):
+                    for match in child._find(searchtype, outermostonly, exclude_headers,  displayname):
                         yield match
             else:
                 for child in self.get_children():
-                    for match in child._find(searchtype, outermostonly):
+                    for match in child._find(searchtype, outermostonly, exclude_headers,  displayname):
                         yield match
 
     def find_loops(self, outermostonly=False, exclude_headers=True):
@@ -270,6 +273,9 @@ class DopingCursor(Cursor):
         ''' Find CALL expressions '''
 
         return self._find(CursorKind.CALL_EXPR)
+
+    def find_name(self, name):
+        return self._find(tuple(), displayname=name, outermostonly=True)
 
     #######################################
     # Analysis methods
@@ -508,6 +514,19 @@ class ForCursor (DopingCursor):
         # are statically unknown or which possibly have any observable
         # side-effects or do not provably return.
 
+    def guarantee_non_aliasing_of(self, list_pointers):
+        loop_variable = self.cond_variable()
+        for pointer in list_pointers:
+            for node in self.find_name(pointer.displayname):
+                if node._parent.kind == CursorKind.ARRAY_SUBSCRIPT_EXPR:
+                    index_expr = node._parent.get_children()[1]
+                    # we are OK if the index is ONLY the loop variable
+                    if index_expr.kind == CursorKind.UNEXPOSED_EXPR and \
+                            index_expr.displayname == loop_variable:
+                        continue
+                # anything else we don't guarantee
+                return False
+        return True
 
     def variable_analysis(self):
         '''

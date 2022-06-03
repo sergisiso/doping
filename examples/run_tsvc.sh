@@ -4,39 +4,102 @@ export DOPING_BENCHMARK=1
 cd benchmark/scripts
 
 # Test execution
-./bench.py --compiler gcc \
-           --parameters RUNTIME_ALL \
-           --isa avx2 \
-           --results test \
-           --cmd-prefix 'dope --' \
-           --run-locally
+#./bench.py --compiler nvc \
+#           --parameters None \
+#           --isa avx2 \
+#           --results test \
+#           --run-locally
 
-           #--cmd-prefix 'dope --' \
            #--benchmark REDUCTIONS \
+           #--run-novec \
+           #--cmd-prefix 'dope --' \
 
-exit
+#exit
 
-
-
-# Doping execution
-./bench.py --compiler pgi \
+# Run Clang
+./bench.py --compiler clang \
            --parameters RUNTIME_ALL \
            --isa avx2 \
            --results test \
            --cmd-prefix 'dope --' \
+           --run-novec \
            --run-locally
 
-# Baseline execution
-./bench.py --compiler pgi \
+./bench.py --compiler clang \
            --parameters RUNTIME_ALL \
            --isa avx2 \
            --results test \
+           --run-novec \
            --run-locally
 
-# Expected results execution (it should be without RUNTIME ATTRIBUTES)
-./bench.py --compiler pgi \
+./bench.py --compiler clang \
            --parameters None \
            --isa avx2 \
            --results test \
            --run-locally
 
+# Run GCC
+./bench.py --compiler gcc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --cmd-prefix 'dope --' \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler gcc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler gcc \
+           --parameters None \
+           --isa avx2 \
+           --results test \
+           --run-locally
+
+# Run Intel
+./bench.py --compiler icc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --cmd-prefix 'dope --' \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler icc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler icc \
+           --parameters None \
+           --isa avx2 \
+           --results test \
+           --run-locally
+
+# Run Nvidia
+./bench.py --compiler nvc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --cmd-prefix 'dope --' \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler nvc \
+           --parameters RUNTIME_ALL \
+           --isa avx2 \
+           --results test \
+           --run-novec \
+           --run-locally
+
+./bench.py --compiler nvc \
+           --parameters None \
+           --isa avx2 \
+           --results test \
+           --run-locally

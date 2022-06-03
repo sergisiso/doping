@@ -109,9 +109,7 @@ int dopingRuntimeG(
         tend = chrono::system_clock::now();
         chrono::duration<double> tduration = tend - tstart;
 
-        //if (std::getenv("DOPING_BENCHMARK") != NULL){
-        //    cout << "DynFunction: " <<  tduration.count() << " ";
-        //}
+        LOG(INFO) << "Time to complete DynFunction: " <<  tduration.count() << " seconds.";
 
         global_counter = 0;
         return 0; // Assume loop is finished (this may need a more careful solution)
